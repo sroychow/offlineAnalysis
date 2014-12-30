@@ -1,5 +1,5 @@
-#ifndef __AnalysisSpace_TreeMaker_PhysicsObjects_h
-#define __AnalysisSpace_TreeMaker_PhysicsObjects_h
+#ifndef __PhysicsObjects_h
+#define __PhysicsObjects_h
 
 #include <vector>
 #include <map>

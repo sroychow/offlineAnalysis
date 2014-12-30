@@ -1,5 +1,5 @@
 UNAME    = $(shell uname)
-EXE      = eltau
+EXE      = muoniso
  
 VPATH  = .:./interface
 vpath %.h ./interface
@@ -10,7 +10,7 @@ DICTC  = Dict.$(CSUF)
 DICTH  = $(patsubst %.$(CSUF),%.h,$(DICTC))
 
 #SRCS   = $(wildcard src/*.$(CSUF))
-SRCS   = src/PhysicsObjects.cc src/AnaBase.cc src/ELTau.cc src/eltau.cc src/MVASkim.cc
+SRCS   = src/PhysicsObjects.cc src/AnaBase.cc src/MuonIsolation.cc src/muonisolation.cc src/MVASkim.cc
 OBJS   = $(patsubst %.$(CSUF), %.o, $(SRCS))
 
 LDFLAGS  = -g
