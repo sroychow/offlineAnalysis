@@ -45,10 +45,16 @@ namespace vhtm {
     double rhoNeutral;
     int nvtx; 
 
+    double fGridRhoAll;
+    double fGridRhoFastjetAll;
+    double fGridRhoFastjetAllCalo;
+    double fGridRhoFastjetCentralCalo;
+    double fGridRhoFastjetCentralChargedPileUp;
+    double fGridRhoFastjetCentralNeutral;
     std::vector<int> nPU;
     std::vector<int> bunchCrossing;
     std::vector<int> trueNInt;
-  
+
     ClassDef(Event,1)
   };
   class GenEvent: public TObject {
@@ -398,8 +404,8 @@ namespace vhtm {
     int ntracksw05;
     bool isfake;
     bool isvalid;
-    //double sumPt; // vector sum//commented originally
     double sumPt; // vector sum
+  
     int selbit;
 
     ClassDef(Vertex, 1)

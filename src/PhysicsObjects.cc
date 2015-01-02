@@ -1,4 +1,4 @@
-#include "PhysicsObjects.h"
+#include "AnalysisSpace/TreeMaker/interface/PhysicsObjects.h"
 
 #define NEL(x) (sizeof((x))/sizeof((x)[0]))
 
@@ -24,7 +24,13 @@ vhtm::Event::Event():
   //isBeamScraping(false),
   rho(-1),
   rhoNeutral(-1),
-  nvtx(0)
+  nvtx(0),
+  fGridRhoAll(-1),
+  fGridRhoFastjetAll(-1),
+  fGridRhoFastjetAllCalo(-1),
+  fGridRhoFastjetCentralCalo(-1),
+  fGridRhoFastjetCentralChargedPileUp(-1),
+  fGridRhoFastjetCentralNeutral(-1)
 {
   nPU.clear();
   bunchCrossing.clear();
