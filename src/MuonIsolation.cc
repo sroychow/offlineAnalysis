@@ -198,8 +198,8 @@ void MuonIsolation::eventLoop()
    AnaUtil::fillHist1D("fGridRhoFastjetCentralCalo",evt.fGridRhoFastjetCentralCalo,1);
    AnaUtil::fillHist1D("fGridRhoFastjetCentralChargedPileUp",evt.fGridRhoFastjetCentralChargedPileUp,1);
    AnaUtil::fillHist1D("fGridRhoFastjetCentralNeutral",evt.fGridRhoFastjetCentralNeutral,1);
-   
-   AnaUtil::fillHist1D("nRecomuon",muonColl()->size(),1);
+   if(!muonColl()->empty())
+     AnaUtil::fillHist1D("nRecomuon",muonColl()->size(),1);
    int ngoodmu=0;
    for (auto it = muonColl()->begin(); it != muonColl()->end(); ++it) {
      const Muon& muon = (*it);
@@ -224,7 +224,7 @@ void MuonIsolation::eventLoop()
        // do deltaBeta
        double iso = muon.isolationMap.at(0.15).at(0) + std::max(0.0, muon.isolationMap.at(0.15).at(1)-0.5*muon.isolationMap.at(0.15).at(2));
        AnaUtil::fillHist1D("muonrelIso_015",iso/muon.pt,1);
-       AnaUtil::fillProfile("NIso015vsrho",evt.fGridRhoFastjetAll,muon.isolationMap.at(0.15).at(1)/muon.pt);
+       AnaUtil::fillProfile("NIso015vsrho",evt.fGridRhoFastjetAll,muon.isolationMap.at(0.15).at(1));
      }
      if(muon.isolationMap.find(0.20) != muon.isolationMap.end() ) {
        AnaUtil::fillHist1D("muonChIso_020",muon.isolationMap.at(0.20).at(0)/muon.pt,1);
@@ -232,7 +232,7 @@ void MuonIsolation::eventLoop()
        AnaUtil::fillHist1D("muonPuIso_020",muon.isolationMap.at(0.20).at(2)/muon.pt,1);
        double iso = muon.isolationMap.at(0.20).at(0) + std::max(0.0, muon.isolationMap.at(0.20).at(1)-0.5*muon.isolationMap.at(0.20).at(2)); 
        AnaUtil::fillHist1D("muonrelIso_020",iso/muon.pt,1);
-       AnaUtil::fillProfile("NIso020vsrho",evt.fGridRhoFastjetAll,muon.isolationMap.at(0.20).at(1)/muon.pt);
+       AnaUtil::fillProfile("NIso020vsrho",evt.fGridRhoFastjetAll,muon.isolationMap.at(0.20).at(1));
     }
      if(muon.isolationMap.find(0.25) != muon.isolationMap.end() ) {
        AnaUtil::fillHist1D("muonChIso_025",muon.isolationMap.at(0.25).at(0)/muon.pt,1);
@@ -240,7 +240,7 @@ void MuonIsolation::eventLoop()
        AnaUtil::fillHist1D("muonPuIso_025",muon.isolationMap.at(0.25).at(2)/muon.pt,1);
        double iso = muon.isolationMap.at(0.25).at(0) + std::max(0.0, muon.isolationMap.at(0.25).at(1)-0.5*muon.isolationMap.at(0.25).at(2));
        AnaUtil::fillHist1D("muonrelIso_025",iso/muon.pt,1);
-       AnaUtil::fillProfile("NIso025vsrho",evt.fGridRhoFastjetAll,muon.isolationMap.at(0.25).at(1)/muon.pt);
+       AnaUtil::fillProfile("NIso025vsrho",evt.fGridRhoFastjetAll,muon.isolationMap.at(0.25).at(1));
      }
      if(muon.isolationMap.find(0.30) != muon.isolationMap.end() ) {
        AnaUtil::fillHist1D("muonChIso_030",muon.isolationMap.at(0.30).at(0)/muon.pt,1);
@@ -248,7 +248,7 @@ void MuonIsolation::eventLoop()
        AnaUtil::fillHist1D("muonPuIso_030",muon.isolationMap.at(0.30).at(2)/muon.pt,1);
        double iso = muon.isolationMap.at(0.30).at(0) + std::max(0.0, muon.isolationMap.at(0.30).at(1)-0.5*muon.isolationMap.at(0.30).at(2));
        AnaUtil::fillHist1D("muonrelIso_030",iso/muon.pt,1);
-       AnaUtil::fillProfile("NIso030vsrho",evt.fGridRhoFastjetAll,muon.isolationMap.at(0.30).at(1)/muon.pt);
+       AnaUtil::fillProfile("NIso030vsrho",evt.fGridRhoFastjetAll,muon.isolationMap.at(0.30).at(1));
      }
      if(muon.isolationMap.find(0.35) != muon.isolationMap.end() ) {
        AnaUtil::fillHist1D("muonChIso_035",muon.isolationMap.at(0.35).at(0)/muon.pt,1);
@@ -256,7 +256,7 @@ void MuonIsolation::eventLoop()
        AnaUtil::fillHist1D("muonPuIso_035",muon.isolationMap.at(0.35).at(2)/muon.pt,1);     
        double iso = muon.isolationMap.at(0.35).at(0) + std::max(0.0, muon.isolationMap.at(0.35).at(1)-0.5*muon.isolationMap.at(0.35).at(2));
        AnaUtil::fillHist1D("muonrelIso_035",iso/muon.pt,1);
-       AnaUtil::fillProfile("NIso035vsrho",evt.fGridRhoFastjetAll,muon.isolationMap.at(0.35).at(1)/muon.pt);
+       AnaUtil::fillProfile("NIso035vsrho",evt.fGridRhoFastjetAll,muon.isolationMap.at(0.35).at(1));
      }
      if(muon.isolationMap.find(0.40) != muon.isolationMap.end() ) {
        AnaUtil::fillHist1D("muonChIso_040",muon.isolationMap.at(0.4).at(0)/muon.pt,1);
@@ -264,10 +264,11 @@ void MuonIsolation::eventLoop()
        AnaUtil::fillHist1D("muonPuIso_040",muon.isolationMap.at(0.40).at(2)/muon.pt,1);
        double iso = muon.isolationMap.at(0.40).at(0) + std::max(0.0, muon.isolationMap.at(0.40).at(1)-0.5*muon.isolationMap.at(0.40).at(2));
        AnaUtil::fillHist1D("muonrelIso_040",iso/muon.pt,1);
-       AnaUtil::fillProfile("NIso040vsrho",evt.fGridRhoFastjetAll,muon.isolationMap.at(0.40).at(1)/muon.pt);
+       AnaUtil::fillProfile("NIso040vsrho",evt.fGridRhoFastjetAll,muon.isolationMap.at(0.40).at(1));
      }
    }
-   AnaUtil::fillHist1D("nGecomuon",ngoodmu,1);
+   if(ngoodmu > 0)
+     AnaUtil::fillHist1D("nGoodmuon",ngoodmu,1);
   }  
   // Analysis is over
   endJob();

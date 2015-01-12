@@ -1,4 +1,4 @@
-#include "AnalysisSpace/TreeMaker/interface/PhysicsObjects.h"
+#include "PhysicsObjects.h"
 
 #define NEL(x) (sizeof((x))/sizeof((x)[0]))
 
