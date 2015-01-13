@@ -137,6 +137,7 @@ namespace vhtm {
     std::map<std::string, float> idmap;
     int selbit;
 
+    std::map< double,std::vector<double> > isolationMap;
     ClassDef(Electron, 1)
   };
   class GenParticle: public TObject {
@@ -401,10 +402,10 @@ namespace vhtm {
     double chi2;
     double ndf;
     //int ntracks;
-    int ntracksw05;
+    int ntracksw05;//************************//
     bool isfake;
     bool isvalid;
-    double sumPt; // vector sum
+    double sumPt; // vector sum//**********************//
   
     int selbit;
 
