@@ -30,31 +30,20 @@ public:
   bool beginJob();
   void endJob();
 
-  //bool readJob(const std::string& jobFile, int& nFiles);
-  //void printJob(std::ostream& os=std::cout) const;
   
   void clearLists();
- // void findMuonIDInfo();
- // void computeMuonEff();
-
   void selectEvent(){};
   virtual void bookHistograms();
+  void readRhofitSlope();
+  void fillHistoforCone(std::string c,double mupt,double ch,double nu,double pu,int ngoodVtx,double fGridRhoFastjetAll);
 
 public:
   //int nProbe[15];
   //int nSingleCut[15];
 
-  //std::vector<vhtm::Vertex> vtxList;
-  //std::vector<vhtm::Electron> eleList;
-  //std::vector<vhtm::Tau> tauList;
-  //std::vector<vhtm::Jet> bjetList;
-  //std::vector<vhtm::TriggerObject> trigObjList;
-  //std::vector<vhtm::Muon> probeMuonList;
-  //std::vector<vhtm::Muon> tagMuonList;
-  std::vector<vhtm::Muon> eventMuons;
+  std::vector<vhtm::Vertex> vtxList;
 public:
-  //std::map<std::string, double> _evselCutMap;
-  //std::vector<std::string> _triggerPathTagList;
   bool _dumpEvent;
+  std::map<std::string,std::string> cone_;
 };
 #endif
