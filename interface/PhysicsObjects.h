@@ -126,7 +126,12 @@ namespace vhtm {
 
     int missingHits;
 
-    double dB;
+    double dB;//2D
+    double edB;    
+  
+    double dB3D;
+    double edB3D;    
+
     int nBrems;
     float fbrem;
   
@@ -137,7 +142,7 @@ namespace vhtm {
     std::map<std::string, float> idmap;
     int selbit;
 
-    std::map< double,std::vector<double> > isolationMap;
+    std::map< std::string,std::vector<double> > isolationMap;
     ClassDef(Electron, 1)
   };
   class GenParticle: public TObject {
@@ -320,8 +325,12 @@ namespace vhtm {
     double vy;
     double vz;
 
-    double dB; // PV2D
+    double dB;//2D
+    double edB;    
   
+    double dB3D;
+    double edB3D;    
+ 
     // UW Recommendation
     bool isGlobalMuonPromptTight;
     bool isAllArbitrated;
@@ -336,7 +345,7 @@ namespace vhtm {
     bool muonID;
 
     int selbit;
-    std::map< double,std::vector<double> > isolationMap;
+    std::map< std::string,std::vector<double> > isolationMap;
     ClassDef(Muon, 1)
 //    ClassDef(Muon, 2)
   };

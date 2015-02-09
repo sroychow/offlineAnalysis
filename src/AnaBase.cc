@@ -40,6 +40,8 @@ using std::sqrt;
 using std::sort;
 using std::setprecision;
 using std::setw;
+using std::setiosflags;
+using std::resetiosflags;
 
 using namespace vhtm;
 
@@ -296,7 +298,8 @@ bool AnaBase::readJob(const string& jobFile, int& nFiles)
   hmap.insert(pair<string, map<string, double>* >("muonCutList", &muonCutMap_));
   hmap.insert(pair<string, map<string, double>* >("tauCutList", &tauCutMap_));
   hmap.insert(pair<string, map<string, double>* >("bjetCutList", &bjetCutMap_));
-
+  hmap.insert(pair<string, map<string, double>* >("evselCutList", &evselCutMap_));
+  
   char buf[BUF_SIZE];
   vector<string> tokens;
   while (fin.getline(buf, BUF_SIZE, '\n')) {  // Pops off the newline character
@@ -342,6 +345,8 @@ bool AnaBase::readJob(const string& jobFile, int& nFiles)
       logOption_ = strtol(value.c_str(), NULL, 2);
     else if (key == "maxEvent") 
       maxEvt_ = atoi(value.c_str());
+    else if (key == "bunchX") 
+      bunchCrossing_ = atoi(value.c_str());
     else if (key == "histFile") 
       histFile_ = value;
     else if (key == "puHistFile") 
@@ -441,7 +446,7 @@ void AnaBase::findVtxInfo(vector<Vertex>& list, Options& op, ostream& os) {
     int sbit = 0;
     if (vtx.ndf <= AnaUtil::cutValue(vtxCutMap_, "ndf"))    sbit |= (1 << 0);
     if (dxy >= AnaUtil::cutValue(vtxCutMap_, "dxy"))         sbit |= (1 << 1);
-    if (abs(vtx.z) >= AnaUtil::cutValue(vtxCutMap_, "z"))   sbit |= (1 << 2);
+    if (std::fabs(vtx.z) >= AnaUtil::cutValue(vtxCutMap_, "z"))   sbit |= (1 << 2);
 
     if (op.verbose) {
       bool pp = (op.printselected && sbit) ? false : true;
@@ -1218,57 +1223,6 @@ bool AnaBase::electronMVA(const Electron& electron)
   return electronId;
 }
 
-
-bool AnaBase::eleId(const vhtm::Electron& ele, int bx=25){
-  bool elIdloose=false;
-  if(bx==50) {
-    bool quality_EB_loose = fabs(ele.eta) <= 1.479
-      && ele.deltaEtaTrkSC < 0.012
-      && ele.deltaPhiTrkSC < 0.15
-      && ele.sigmaIEtaIEta < 0.012
-      && ele.hoe < 0.12
-      && fabs(1/ele.caloEnergy - ele.eop/ele.caloEnergy) < 0.05
-      && !ele.hasMatchedConv // corrected for MiniAOD!!!
-      && ele.missingHits <= 1;
-    
-    bool quality_EE_loose = 1.479 < fabs(ele.eta) && fabs(ele.eta) < 2.5
-      && ele.deltaEtaTrkSC < 0.021
-      && ele.deltaPhiTrkSC < 0.10
-      && ele.sigmaIEtaIEta < 0.033
-      && ele.hoe < 0.12
-      && fabs(1/ele.caloEnergy - ele.eop/ele.caloEnergy) < 0.05
-      && !ele.hasMatchedConv
-      && ele.missingHits <= 1;
-    elIdloose = quality_EB_loose || quality_EE_loose;
-  }
-  
-  else if ( bx==25) {
-    bool quality_EB_loose = fabs(ele.eta) <= 1.479
-      && ele.deltaEtaTrkSC < 0.012
-      && ele.deltaPhiTrkSC < 0.15
-      && ele.sigmaIEtaIEta < 0.01
-      && ele.hoe < 0.12
-      && fabs(1/ele.caloEnergy - ele.eop/ele.caloEnergy) < 0.05
-      && !ele.hasMatchedConv
-      && ele.missingHits <= 1;
-    
-    bool quality_EE_loose = 1.479 < fabs(ele.eta) && fabs(ele.eta) < 2.5
-      && ele.deltaEtaTrkSC < 0.014
-      && ele.deltaPhiTrkSC < 0.10
-      && ele.sigmaIEtaIEta < 0.033
-      && ele.hoe < 0.12
-      && fabs(1/ele.caloEnergy - ele.eop/ele.caloEnergy) < 0.05
-      && !ele.hasMatchedConv
-      && ele.missingHits <= 1;
-    
-    elIdloose = quality_EB_loose || quality_EE_loose;
-  }
-  else {
-    std::cout << ">>> Invalid bunch crossing value!!" << std::endl;
-  }
-  return elIdloose;
-}
-
 bool AnaBase::DYtoeeVeto(TLorentzVector TOS, TLorentzVector TSS, double tauOSemfrac, vhtm::Electron ele, int elIndx){
   const double zmass = 91.1876;
   TLorentzVector  E1;
@@ -1386,5 +1340,55 @@ void AnaBase::isGenMatchedDy(int leptonId, vector<GenParticle>& genObjList, bool
       isDYevent = true;
   }
   
+}
+
+bool AnaBase::eleId(const vhtm::Electron& ele, int bx=25){
+  bool elIdloose=false;
+  if(bx==50) {
+    bool quality_EB_loose = fabs(ele.eta) <= 1.479
+      && ele.deltaEtaTrkSC < 0.012
+      && ele.deltaPhiTrkSC < 0.15
+      && ele.sigmaIEtaIEta < 0.012
+      && ele.hoe < 0.12
+      && fabs(1/ele.caloEnergy - ele.eop/ele.caloEnergy) < 0.05
+      && !ele.hasMatchedConv // corrected for MiniAOD!!!
+      && ele.missingHits <= 1;
+    
+    bool quality_EE_loose = 1.479 < fabs(ele.eta) && fabs(ele.eta) < 2.5
+      && ele.deltaEtaTrkSC < 0.021
+      && ele.deltaPhiTrkSC < 0.10
+      && ele.sigmaIEtaIEta < 0.033
+      && ele.hoe < 0.12
+      && fabs(1/ele.caloEnergy - ele.eop/ele.caloEnergy) < 0.05
+      && !ele.hasMatchedConv
+      && ele.missingHits <= 1;
+    elIdloose = quality_EB_loose || quality_EE_loose;
+  }
+  
+  else if ( bx==25) {
+    bool quality_EB_loose = fabs(ele.eta) <= 1.479
+      && ele.deltaEtaTrkSC < 0.012
+      && ele.deltaPhiTrkSC < 0.15
+      && ele.sigmaIEtaIEta < 0.01
+      && ele.hoe < 0.12
+      && fabs(1/ele.caloEnergy - ele.eop/ele.caloEnergy) < 0.05
+      && !ele.hasMatchedConv
+      && ele.missingHits <= 1;
+    
+    bool quality_EE_loose = 1.479 < fabs(ele.eta) && fabs(ele.eta) < 2.5
+      && ele.deltaEtaTrkSC < 0.014
+      && ele.deltaPhiTrkSC < 0.10
+      && ele.sigmaIEtaIEta < 0.033
+      && ele.hoe < 0.12
+      && fabs(1/ele.caloEnergy - ele.eop/ele.caloEnergy) < 0.05
+      && !ele.hasMatchedConv
+      && ele.missingHits <= 1;
+    
+    elIdloose = quality_EB_loose || quality_EE_loose;
+  }
+  else {
+    std::cout << ">>> Invalid bunch crossing value!!" << std::endl;
+  }
+  return elIdloose;
 }
 

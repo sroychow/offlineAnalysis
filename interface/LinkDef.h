@@ -4,6 +4,7 @@
 
 #include <vector>
 #include<map>
+#include<string>
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
@@ -29,6 +30,7 @@
 #pragma link C++ class std::vector<vhtm::Tau>+;
 #pragma link C++ class vhtm::Muon+;
 #pragma link C++ class std::vector<vhtm::Muon>+;
+#pragma link C++ class std::pair<vhtm::Muon,vhtm::Muon>+;
 #pragma link C++ class vhtm::Jet+;
 #pragma link C++ class std::vector<vhtm::Jet>+;
 #pragma link C++ class vhtm::Vertex+;
@@ -44,5 +46,6 @@
 #pragma link C++ class std::pair<std::string,unsigned int>+;
 #pragma link C++ class std::vector<double>+;
 #pragma link C++ class std::map< double,std::vector<double> >+;
+#pragma link C++ class std::map< std::string,std::vector<double> >+;
 //#pragma link C++ class std::pair< double,std::vector<double> >+;
 #endif

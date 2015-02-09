@@ -39,12 +39,12 @@ public:
 
   void selectEvent(){};
   virtual void bookHistograms();
-
+  void readRhofitSlope();
 public:
   //int nProbe[15];
   //int nSingleCut[15];
 
-  //std::vector<vhtm::Vertex> vtxList;
+  std::vector<vhtm::Vertex> vtxList;
   //std::vector<vhtm::Electron> eleList;
   //std::vector<vhtm::Tau> tauList;
   //std::vector<vhtm::Jet> bjetList;
@@ -56,5 +56,6 @@ public:
   //std::map<std::string, double> _evselCutMap;
   //std::vector<std::string> _triggerPathTagList;
   bool _dumpEvent;
+  std::map<std::string,double> rhisoSlope;
 };
 #endif

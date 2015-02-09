@@ -49,6 +49,17 @@ public:
   }
 };
 
+template <class T>
+class MassComparator {
+public:
+  bool operator()(const T &a, const T &b) const {
+    TLorentzVector l1,l2;
+    l1.SetPtEtaPhiE(a.pt,a.eta,a.phi,a.energy);
+    l2.SetPtEtaPhiE(b.pt,b.eta,b.phi,b.energy);
+    return l1.M() > l2.M();
+  }
+};
+
 typedef struct  
 {
   bool verbose;
@@ -175,10 +186,13 @@ public:
   const std::map<std::string, double>& electronCutMap() const {return electronCutMap_;}
   const std::map<std::string, double>& tauCutMap() const {return tauCutMap_;}
   const std::map<std::string, double>& bjetCutMap() const {return bjetCutMap_;}
+  const std::map<std::string, double>& evselCutMap() const {return evselCutMap_;}
   const std::map<std::string, int>& eventIdMap() const {return eventIdMap_;}
 
   bool useTCHE() const {return useTCHE_;}
 
+  int bunchCrossing() const {return bunchCrossing_;}
+  
 public:
   double puevWt_;
   bool emt, eet, mmt;
@@ -233,12 +247,14 @@ private:
   std::string logFile_;
   std::string evFile_;
   int maxEvt_;
+  int bunchCrossing_;
 
   std::map<std::string, double> vtxCutMap_;
   std::map<std::string, double> muonCutMap_;
   std::map<std::string, double> electronCutMap_;
   std::map<std::string, double> tauCutMap_;
   std::map<std::string, double> bjetCutMap_;
+  std::map<std::string, double> evselCutMap_;
   std::map<std::string, int> eventIdMap_;
 
   bool useTCHE_;
