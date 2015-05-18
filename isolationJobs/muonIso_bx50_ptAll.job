@@ -1,0 +1,60 @@
+START
+dataType mc
+readTrk  0
+readTrigObject 0
+puHistFile /afs/cern.ch/work/a/amodak/public/CSA14/CMSSW_7_0_7_patch1/src/15Sept2014/reweightFunctionFall12.root
+histFile  test_HZZ4lmuIso_bx50_PtAll.root
+logFile   test_HZZ4lmuIso_bx50_PtAll.out
+eventFile test_events_mubx50_PtAll.out
+createMVATree 0
+mvaInputFile VH125_tmva_4.root
+readMVA 0
+logOption 0
+maxEvent -1
+bunchX 50
+vtxCutList ndf=4 dxy=2 z=24
+muonCutList eta=2.1 pt=0.1 nChambers=2 nMatches=2 nMatchedStations=2
+muonCutList pixHits=1 trkHits=8 globalChi2=10.0 trkD0=0.02 dB=0.02 vtxDistZ=0.2 dz=0.2 relIso=0.1
+muonCutList db015=0.411993 db020=0.464575 db025=0.549151 db030=0.65678 db035=0.758614 db040=0.812701 db045=0.837613
+muonCutList dbInt015=0. dbInt020=0. dbInt025=0. dbInt030=0. dbInt035=0. dbInt040=0. dbInt045=0.
+muonCutList arho015=0.106272 brho015=0.0206242 crho015=3.57679e-06
+muonCutList arho020=0.159595 brho020=0.0360341 crho020=-2.44855e-05
+muonCutList arho025=0.186089 brho025=0.0591377 crho025=-0.000147718
+muonCutList arho030=0.235431 brho030=0.0855096 crho030=-0.000300451
+muonCutList arho035=0.277137 brho035=0.118638 crho035=-0.000592699
+muonCutList arho040=0.318219 brho040=0.158087 crho040=-0.00107252
+muonCutList arho045=0.32911 brho045=0.20585 crho045=-0.00181714
+muonCutList apuIso015=-0.0603649 bpuIso015=0.0388404 cpuIso015=-6.19093e-05
+muonCutList apuIso020=-0.139535 bpuIso020=0.0723023 cpuIso020=-0.000376098
+muonCutList apuIso025=-0.154645 bpuIso025=0.106924 cpuIso025=-0.000836647
+muonCutList apuIso030=0.0101087 bpuIso030=0.129759 cpuIso030=-0.0012272
+muonCutList apuIso035=0.26252 bpuIso035=0.143858 cpuIso035=-0.00154984
+muonCutList apuIso040=0.570797 bpuIso040=0.149258 cpuIso040=-0.00175033
+muonCutList apuIso045=0.889931 bpuIso045=0.148686 cpuIso045=-0.00184845
+muonCutList aNIso015=0.0299115 bNIso015=0.0178376 cNIso015=-5.87629e-05
+muonCutList aNIso020=0.0674644 bNIso020=0.0296178 cNIso020=-0.000103854
+muonCutList aNIso025=0.080873 bNIso025=0.0474957 cNIso025=-0.000264023
+muonCutList aNIso030=0.151963 bNIso030=0.0640743 cNIso030=-0.000432478
+muonCutList aNIso035=0.220896 bNIso035=0.083377 cNIso035=-0.000705578
+muonCutList aNIso040=0.350653 bNIso040=0.0995114 cNIso040=-0.000990142
+muonCutList aNIso045=0.515429 bNIso045=0.112016 cNIso045=-0.00124445
+electronCutList pt=24 eta=2.1 missingHits=1 dB=0.02 trkHits=8 pixHits=1 trkD0=0.045 dz=0.2 relIsoBarrel=0.15 relIsoEndCap=0.1
+electronCutList etaLow=1.4442 etaUp=1.566 scEtaLow=1.4442 scEtaUp=1.566 eleId=7
+tauCutList eta=2.3 pt=10 dz=0.2 muVeto=0.5 eleVeto=0.5
+bjetCutList eta=2.4 pt=20 useTCHE=0 TCHECut=3.3 SVHECut=1.74
+evselCutList drMuTau=0.5 drTauTau=0.5 drEleTau=0.5 ptTau1=25 ptTau2=20 muVetoPt=15 eleVetoPt=15 etaTau1=2.3 etaTau2=2.3
+evselCutList dzMuTauVtx=0.14 dzTauTauVtx=0.14 dzEleTauVtx=0.14 eTauMass=80 tauPairPt=50
+evselCutList maxPtDiff=20 maxDr=0.1 massLow=30 massHigh=120 tagPt=15 maxMET=30
+useTrigger 0
+inputFile  /Users/suvankar/HZZ4lAnalysis/anaTrees/PU40bx50/HZZ4lminiAODtree_1.root
+inputFile  /Users/suvankar/HZZ4lAnalysis/anaTrees/PU40bx50/HZZ4lminiAODtree_2.root
+inputFile  /Users/suvankar/HZZ4lAnalysis/anaTrees/PU40bx50/HZZ4lminiAODtree_3.root
+inputFile  /Users/suvankar/HZZ4lAnalysis/anaTrees/PU40bx50/HZZ4lminiAODtree_4.root
+inputFile  /Users/suvankar/HZZ4lAnalysis/anaTrees/PU40bx50/HZZ4lminiAODtree_5.root
+inputFile  /Users/suvankar/HZZ4lAnalysis/anaTrees/PU40bx50/HZZ4lminiAODtree_6.root
+inputFile  /Users/suvankar/HZZ4lAnalysis/anaTrees/PU40bx50/HZZ4lminiAODtree_7.root
+inputFile  /Users/suvankar/HZZ4lAnalysis/anaTrees/PU40bx50/HZZ4lminiAODtree_8.root
+inputFile  /Users/suvankar/HZZ4lAnalysis/anaTrees/PU40bx50/HZZ4lminiAODtree_9.root
+inputFile  /Users/suvankar/HZZ4lAnalysis/anaTrees/PU40bx50/HZZ4lminiAODtree_10.root
+inputFile  /Users/suvankar/HZZ4lAnalysis/anaTrees/PU40bx50/HZZ4lminiAODtree_11.root
+END

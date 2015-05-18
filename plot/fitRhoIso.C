@@ -40,7 +40,7 @@ void bindstat(T* h,double x1ndc,double y1ndc, double x2ndc,double y2ndc)
    }
 
 
-void dofitRhoIso(TFile* fin,TFile* fout, int rLow,int rUp) {
+void dofitRhoIso(TFile* fin,TFile* fout, int rLow,int rUp,std::ofstream& ff) {
 
       
       // open a file and get a histogram
@@ -65,8 +65,8 @@ void dofitRhoIso(TFile* fin,TFile* fout, int rLow,int rUp) {
           fout->cd();
           hpx->Write();
           fin->cd();
-          std::cout << "Slope=" << func->GetParameter("Slope") << std::endl;
-          std::cout << "Constant=" << func->GetParameter("Constant") << std::endl;
+          ff << "Slope=" << func->GetParameter("Slope") << std::endl;
+          ff << "Constant=" << func->GetParameter("Constant") << std::endl;
         }
       }
 
@@ -105,28 +105,28 @@ void doQfitRhoIso(TFile* fin,TFile* fout, int rLow,int rUp,std::ofstream& ff) {
       }
 
    }
-
-void doIsonVtxfit(TFile* fin,TFile* fout, int rLow,int rUp,TString isotype,std::ofstream& ff) {
- //ofstream ff("slopes.txt");
- ff<<isotype<<std::endl;
+//do linear fit
+void doIsonVtxLfit(TFile* fin,TFile* fout, int rLow,int rUp,TString isotype,std::ofstream& ff) {
+ ff<< isotype + "IsovsNVtx Linear Fit results"<<std::endl;
  for(int c=0;c<7;c++) {
   TProfile *hpx = dynamic_cast<TProfile*>(fin->Get(isotype+cone[c]+"vsnVtx"));
   TF1 *func = new TF1("fit",fitf,0,100,2);
-  func->SetParNames ("Constant","Slope");
+  func->SetParNames ("c","m");
   hpx->Fit("fit","", "",rLow,rUp);
   ff<<cone[c]<<"\t";
   bindstat<TProfile>(hpx,0.7797101,0.4298401,0.9797101,0.9360568); 
   fout->cd();
   hpx->Write();
   fin->cd();
-  ff<< "Slope=" << func->GetParameter("Slope") << std::endl;
+  ff<< "c"+isotype+cone[c]+"=" << func->GetParameter("c") <<"+/-" << func->GetParError(func->GetParNumber("c")) 
+    << " m"+isotype+cone[c]+"=" << func->GetParameter("m") <<"+/-"<< func->GetParError(func->GetParNumber("m"))
+    << std::endl;
  }
- //ff.close();
 }
 //do quadratic fit
 void doIsonVtxQfit(TFile* fin,TFile* fout, int rLow,int rUp,TString isotype,std::ofstream& ff) {
  //ofstream ff("slopes.txt");
- ff<<isotype<<std::endl;
+ ff<< isotype + "IsovsNVtx Quadratic Fit results"<<std::endl;
  for(int c=0;c<7;c++) {
   TProfile *hpx = dynamic_cast<TProfile*>(fin->Get(isotype+cone[c]+"vsnVtx"));
   TF1 *func = new TF1("fit",fitQf,0,100,3);

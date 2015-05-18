@@ -321,6 +321,8 @@ namespace vhtm {
     bool isGlobalMuon;
     bool isTrackerMuon;
     bool isPFMuon;
+    bool isghostCleaned;
+
     double eta;
     double phi;
     double pt;
@@ -331,7 +333,8 @@ namespace vhtm {
     double trkD0;
 
     double trkDz;
-
+    int muonBestTrackType;  
+   
     double globalChi2;
     double tkNChi2;
 
@@ -345,13 +348,13 @@ namespace vhtm {
     float sumPUPt03;
     float pfRelIso03;
 
-    float pfChargedIsoR04emu;
-    float pfChargedIsoR04;
-    float pfNeutralHadIsoR04;
-    float pfPhotonIso04;    
-    float sumPUPt04;
+    float sumChargedParticlePt;
+    float sumChargedHadronPt;
+    float sumNeutralHadronEt;
+    float sumPhotonEt;
+    float sumPUPt;
     float pfRelIso04;
-    
+
     int passID;
     double dxyPV;
     double dzPV;
@@ -386,6 +389,8 @@ namespace vhtm {
     unsigned int stationGapMaskPull;
 
     bool muonID;
+   
+    int nSegments;
 
     int selbit;
     std::map< std::string,std::vector<double> > isolationMap;

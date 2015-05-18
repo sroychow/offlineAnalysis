@@ -1,0 +1,824 @@
+#include "configana.h"
+#include <iostream>
+#include <iomanip>
+#include <algorithm>
+#include <iterator>
+#include <functional>
+#include <numeric>
+#include <string>
+#include <climits>
+#include <cassert>
+#include <cstdlib>
+#include <sstream>
+#include <utility> 
+#include <typeinfo>
+#include "TROOT.h"
+#include "TSystem.h"
+#include "TChain.h"
+#include "TClonesArray.h"
+#include "TFrame.h"
+#include "TRandom.h"
+#include "TStopwatch.h"
+#include "TFile.h"
+#include "TH1K.h"
+#include "TH1.h"
+#include "TH2.h"
+#include "TProfile.h"
+
+#include "EventSelection.h"
+#include "AnaUtil.h"
+#include "PhysicsObjects.h"
+
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::string;
+using std::ostringstream;
+using std::vector;
+using std::map;
+using std::pair;
+using std::abs;
+using std::max;
+using std::sqrt;
+using std::sort;
+using std::setprecision;
+using std::setw;
+
+using namespace vhtm;
+
+// -----------
+// Constructor
+// -----------
+EventSelection::EventSelection()
+  : AnaBase(),
+    _dumpEvent(false)
+{
+ //Mzdiff=9999.;
+ //Z1present=false;
+ //Z2present=false;
+ //Z1tomu=false;
+ //Z1toele=false;
+ n4mu=0;
+ n2e2mu=0;
+ n4e=0;
+ nZ1clash=0;
+ ntauev=0;
+}
+// ----------
+// Destructor
+// ----------
+EventSelection::~EventSelection() 
+{}
+// -------------------------------------------------------
+// Prepare for the run, do necessary initialisation etc.
+// -------------------------------------------------------
+bool EventSelection::beginJob() 
+{ 
+  AnaBase::beginJob();
+
+  // Open the output ROOT file
+  histf()->cd();
+  bookHistograms();
+
+  return true;
+}
+// ---------------
+// Book histograms
+// ---------------
+void EventSelection::bookHistograms() 
+{
+//-------muon-object selection plots
+  new TH1F("mupt", "muon Pt", 150, 0., 150.);
+  new TH1F("muptid", "muon Pt(id passed)", 150, 0., 150.);
+  new TH1F("muptidIso03", "muon Pt(id + pfRelIso03<0.4 passed)", 150, 0., 150.);
+  new TH1F("muptidIso04", "muon Pt(id + pfRelIso04<0.4 passed)", 150, 0., 150.);
+  new TH1F("muPFRelIso03","Muon PF Relative Isolation 03",100,0.,1.);
+  new TH1F("muPFRelIso04","Muon PF Relative Isolation 04",100,0.,1.);
+  new TH1F("muAbsSIP3D","Muon |SIP3D| ",30,0.,15.);
+  new TH1F("mudzPV","Muon dzPV ",100,0.,.2);
+  new TH1F("goodmudzPV","Selected Muon dzPV ",100,0.,.2);
+  new TH1D("muCutFlow","Muon cut flow",50,-0.5,49.5);//------------------------------------------------------
+//-------Electron Selection Plots-----------------------
+  new TH1F("elept", "electron Pt", 150, 0., 150.);
+  new TH1F("eleptid", "electron Pt(id passed)", 150, 0., 150.);
+  new TH1F("eleptidIso", "muon Pt(id + pfRelIso<0.4 passed)", 150, 0., 150.);
+  new TH1F("elePFRelIso","electron PF Relative Isolation",100,0.,1.);
+  new TH1F("eleAbsSIP3D","Electron |SIP3D| ",30,0.,15.);
+  new TH1F("eledzPV","Electron dzPV ",100,0.,.2);
+  new TH1F("goodeledzPV","Selected Electron dzPV ",100,0.,.2);
+  new TH1D("eleCutFlow","Electron cut flow",50,-0.5,49.5);
+//------------------------------------------------------
+  new TH1D("nGoodmuon","Number of Good muons(with selection cuts) per event",20,0,20);
+  new TH1D("nGoodelectron","Number of Good electrons(with selection cuts) per event",20,0,20);
+  new TH1F("nl1Pt", "Pt of highest Pt lepton", 30, 0., 150.);
+  new TH1F("nl2Pt", "Pt of second-highest Pt lepton", 30, 0., 150.);
+  new TH1F("nl3Pt", "Pt of third-highest Pt lepton", 30, 0., 150.);
+  new TH1F("nl4Pt", "Pt of lowest Pt lepton", 30, 0., 150.);
+  new TH1F("nZ1cand", "Num of all possible Z1 candidates", 20, -0.5, 9.5);
+  new TH1F("newmassZ1", "Mass of all possible Z1 candidates", 30, 0., 150.);
+  new TH1F("newmassZ2", "Mass of all possible Z2 candidates", 30, 0., 150.);
+  new TH1F("nZ2cand", "Num of all possible Z2 candidates", 10, -0.5, 9.5);
+  new TH1F("newmassZ1select", "Mass of selected Z1 candidate(Z2 selection pending)", 30, 0., 150.);
+  new TH1F("newmassZ1Z2select", "Mass of selected Z1 candidate when Z2 is selected", 30, 0., 150.);
+  new TH1F("newmassZ2select", "Mass of selected Z2 candidates", 30, 0., 150.);
+  new TH1F("crossMass1", "", 20, 0., 100.);
+  new TH1F("crossMass2", "", 20, 0., 100.);
+  new TH1F("newmassZ1ev", "Mass of Z1 for slected events", 30, 0., 150.);
+  new TH1F("newmassZ2ev", "Mass of Z2 for slected events", 30, 0., 150.);
+  new TH1F("newmassH", "Invariant Mass of Higgs", 40, 100., 300.);
+  new TH1F("nZ1flav", "Flavour of selected Z1 candidates", 10, -0.5, 9.5);
+  new TH1F("nZ2flav", "Flavour of selected Z2 candidates", 10, -0.5, 9.5);
+  new TH1F("nEvflav", "Flavour of selected event", 10, -0.5, 9.5);
+//GEN Level histograms
+  new TH1F("genHmass", "Gen Higgs Mass", 200, 0., 200.);
+  new TH1F("genHmassfromZ", "Gen Higgs Mass from Z", 200, 0., 200.);
+  new TH1F("genHmassfromZdau", "Gen Higgs Mass from Z daughters", 400, 0., 200.);
+  new TH1F("genZmother", "Z mother Id", 30, 0, 30);
+  new TH1F("genZmass", "Gen Z Mass", 150, 0., 150.);
+  new TH1F("genZ1mass", "Gen Z1 Mass", 150, 0., 150.);
+  new TH1F("genZ2mass", "Gen Z2 Mass", 150, 0., 150.);
+  new TH1F("nZdauflav", "Flavour of daughters Z ", 10, -0.5, 9.5);
+  new TH1F("nZ1dauflav", "Flavour of daughters Z1 ", 10, -0.5, 9.5);
+  new TH1F("nZ2dauflav", "Flavour of daughters Z2 ", 10, -0.5, 9.5);
+  new TH1F("nEvntflav", "Flavour of ZZ decay ", 10, -0.5, 9.5);
+  //new TH1F("nEvntflavvv", "Flavour of ZZ decay ", 10, -0.5, 9.5);
+  //new TH1D("genPass","genPass",10,-0.5,9.5);
+//Event Level Cuts
+  new TH1D("evntCutFlow","Event cut flow",50,-0.5,49.5);
+  new TH1D("dRgenZ1recoZ1","Delta R between event level Z1 and gen Z1",200,0.,1.);
+  new TH1D("dRgenZ2recoZ2","Delta R between event level Z2 and gen Z2",200,0.,1.);
+  new TH1D("dRllZ1","Delta R between leptons from Z1",200,0.,5.);
+  new TH1D("dRllZ2","Delta R between leptons from Z2",200,0.,5.);
+//Event Cut Flow Channel based
+//  new TH1F("lepZ1Pt", "Pt of leptons from Z1", 30, 0., 150.);
+//  new TH1F("lepZ2Pt", "Pt of leptons from Z2", 30, 0., 150.);
+//  new TH1F("lep1Pt", "Pt of Highset Pt Lepton", 30, 0., 150.);
+//  new TH1F("lep2Pt", "Pt of 2nd-Highset Pt Lepton", 30, 0., 150.);
+//  new TH1F("lep3Pt", "Pt of 3nd-Highset Pt Lepton", 30, 0., 150.);
+//  new TH1F("lep4Pt", "Pt of lowest Pt Lepton", 30, 0., 150.);
+  
+  new TH1D("evntCutFlow_4mu","Event cut flow",50,-0.5,49.5);
+  new TH1D("evntCutFlow_4e","Event cut flow",50,-0.5,49.5);
+  new TH1D("evntCutFlow_2e2mu","Event cut flow",50,-0.5,49.5);
+  new TH1D("evntCutFlow_bkg","Event cut flow",50,-0.5,49.5);
+  new TH1D("evntTheta_sig","Theta",50,-0.5,3.5);
+  new TH1D("evntCosTheta_sig","CosTheta",50,-1.,1.);
+  new TH1D("evntTheta_sig2","Theta",50,-0.5,3.5);
+  new TH1D("evntCosTheta_sig2","CosTheta",50,-1.,1.);
+  new TH1D("evntM","",40,0.,200.);
+}
+
+// -------------------------------
+// Clear vectors before event loop
+// -------------------------------
+void EventSelection::clearLists() {
+ vtxList.clear();
+ eleVec.clear();
+ muVec.clear();
+ tauVec.clear();
+ myZ1.clear();
+ myZ2.clear();
+ genZ.clear();
+ myZ.clear();
+ evtype=-1;
+}
+// -------------------
+// The main event loop
+// -------------------
+void EventSelection::eventLoop()
+{
+    // Initialize analysis
+    if (!beginJob()) return;
+    int nPrint = max(10000, nEvents()/1000);
+
+    Options op;
+    op.verbose = false;
+    op.usesbit = true;  // Crucial
+    op.printselected = false;
+  
+  
+    // --------------------
+    // Start the event loop
+    // --------------------
+    string lastFile;
+    std::cout<<"Bunch Crossing>>>>"<<bunchCrossing()<<std::endl;
+    //int n4mu=0,n2e2mu=0,n4e=0,nZ1clash=0,ntauev=0;
+    for (int ev = 0; ev < nEvents(); ++ev) {
+        clearEvent();
+        clearLists();
+        int lflag = chain()->LoadTree(ev);
+        int nbytes = getEntry(lflag);    // returns total bytes read
+        string currentFile(gSystem->BaseName(chain()->GetCurrentFile()->GetName()));
+        const Event& evt = eventColl()->at(0);
+
+        histf()->cd();
+
+        //For data or for MC without pileup
+        puevWt_ = 1;
+        /*
+         if (isMC()) {
+         int npu = 0;
+         puevWt_ = wtPileUp(npu);
+         }
+        */
+        // Show status of the run
+        int run   = evt.run;
+        int event = evt.event;
+        int lumis = evt.lumis;
+        
+        // Show status of the run
+        if (currentFile != lastFile)
+            cout << "Tree# " << setw(4) << chain()->GetTreeNumber()
+            << " ==> " << currentFile
+            << " <<< Run# " << run
+            << " Lumis# " << lumis
+            << " Event# " << setw(8) << event << " >>> "
+            << " Events proc. " << setw(8) << ev
+            << endl;
+        lastFile = currentFile;
+
+        // Show the status
+        if (ev%nPrint == 0)
+            cout << "Tree# " << setw(4) << chain()->GetTreeNumber()
+            << " ==> " << chain()->GetCurrentFile()->GetName()
+            << " <<< Run# " << run
+            << " Lumis# " << lumis
+            << " Event# " << setw(8) << event << " >>> "
+            << " Events proc. " << setw(8) << ev
+            << endl;
+        //good vertex finding
+        op.verbose = (logOption() >> 1 & 0x1);
+        findVtxInfo(vtxList, op, fLog());
+        double ngoodVtx=vtxList.size();
+        //if(!muonColl()->empty())
+            //  AnaUtil::fillHist1D("nRecomuon",muonColl()->size(),1);
+          // std::cout<<"Start muon loop"<<std::endl;
+        AnaUtil::fillHist1D("evntCutFlow",0,1);
+        AnaUtil::fillHist1D("evntCutFlow_4mu",0,1);
+        AnaUtil::fillHist1D("evntCutFlow_4e",0,1);
+        AnaUtil::fillHist1D("evntCutFlow_2e2mu",0,1);
+        AnaUtil::fillHist1D("evntCutFlow_bkg",0,1);//reco mu < 1
+     if(AnaUtil::cutValue(evselCutMap(), "Isbkg")) { 
+        if( ngoodVtx < 1 ) continue;
+          AnaUtil::fillHist1D("evntCutFlow_bkg",1,1);
+        muonSelector();
+        electronSelector();
+        int lepsize=muVec.size()+eleVec.size();
+        if( lepsize < 1 ) continue;
+          AnaUtil::fillHist1D("evntCutFlow_bkg",2,1);//reco mu < 1
+          if( lepsize < 2 ) continue;
+          AnaUtil::fillHist1D("evntCutFlow_bkg",3,1);//reco mu < 1
+          if( lepsize < 3 ) continue;
+          AnaUtil::fillHist1D("evntCutFlow_bkg",4,1);//reco mu < 1
+          if( lepsize < 4 ) continue;
+          AnaUtil::fillHist1D("evntCutFlow_bkg",5,1);//reco mu < 1
+        if( muVec.size() >= 2 ) ZSelector<vhtm::Muon>(muVec);
+        if( eleVec.size() >= 2 ) ZSelector<vhtm::Electron>(eleVec);
+
+        if( !myZ.empty() ) {
+            AnaUtil::fillHist1D("evntCutFlow_bkg",6,1);
+            if( Z1Selector() ) {
+              AnaUtil::fillHist1D("evntCutFlow_bkg",7,1); 
+              if( Z2Selector() ) {
+                AnaUtil::fillHist1D("evntCutFlow_bkg",8,1); 
+                plotHmass("evntCutFlow_bkg",9);
+              }
+            }
+        }
+      }
+      else {
+        bool genPass = genOk();
+        if(!genPass) continue;
+        AnaUtil::fillHist1D("evntCutFlow",1,1);
+        if( evtype == EventType::mmmm ) 
+          AnaUtil::fillHist1D("evntCutFlow_4mu",1,1);
+        if( evtype == EventType::eeee ) 
+          AnaUtil::fillHist1D("evntCutFlow_4e",1,1);
+        if( evtype == EventType::eemm ) 
+          AnaUtil::fillHist1D("evntCutFlow_2e2mu",1,1);
+
+        if( ngoodVtx < 1 ) continue;
+          AnaUtil::fillHist1D("evntCutFlow",2,1);
+       
+        muonSelector();
+        electronSelector();
+        tauSelector();
+        if( evtype == EventType::mmmm ) {
+          AnaUtil::fillHist1D("evntCutFlow_4mu",2,1);//good vertex
+          AnaUtil::fillHist1D("nGoodmuon",muVec.size(),1);//good vertex
+          if( muVec.size() < 1 ) continue;
+          AnaUtil::fillHist1D("evntCutFlow_4mu",3,1);//reco mu < 1
+          if( muVec.size() < 2 ) continue;
+          AnaUtil::fillHist1D("evntCutFlow_4mu",4,1);//reco mu < 1
+          if( muVec.size() < 3 ) continue;
+          AnaUtil::fillHist1D("evntCutFlow_4mu",5,1);//reco mu < 1
+          if( muVec.size() < 4 ) continue;
+          AnaUtil::fillHist1D("evntCutFlow_4mu",6,1);//reco mu > 4
+          ZSelector<vhtm::Muon>(muVec);
+          if( !myZ.empty() ) {
+            AnaUtil::fillHist1D("evntCutFlow_4mu",7,1);
+            if( Z1Selector() ) {
+              AnaUtil::fillHist1D("evntCutFlow_4mu",8,1);
+              if( Z2Selector() ) {
+                AnaUtil::fillHist1D("evntCutFlow_4mu",9,1);
+                plotHmass("evntCutFlow_4mu",10);
+              } 
+            }
+          }
+        }
+        else if( evtype == EventType::eeee ) {
+          AnaUtil::fillHist1D("evntCutFlow_4e",2,1);//good vertex
+          if( eleVec.size() < 1 ) continue;
+            AnaUtil::fillHist1D("evntCutFlow_4e",3,1);
+          if( eleVec.size() < 2 ) continue;
+            AnaUtil::fillHist1D("evntCutFlow_4e",4,1);
+          if( eleVec.size() < 3 ) continue;
+            AnaUtil::fillHist1D("evntCutFlow_4e",5,1);
+          if( eleVec.size() < 4 ) continue;
+          AnaUtil::fillHist1D("evntCutFlow_4e",6,1);//reco mu > 4
+          ZSelector<vhtm::Electron>(eleVec);
+          if( !myZ.empty() ) {
+            AnaUtil::fillHist1D("evntCutFlow_4e",7,1);
+            if( Z1Selector() ) {
+              AnaUtil::fillHist1D("evntCutFlow_4e",8,1);
+              if( Z2Selector() ) {
+                AnaUtil::fillHist1D("evntCutFlow_4e",9,1);
+                plotHmass("evntCutFlow_4e",10);
+              }
+            }
+          }
+        } 
+        else if( evtype == EventType::eemm ) {
+          AnaUtil::fillHist1D("evntCutFlow_2e2mu",2,1);//good vertex
+          if( eleVec.size() < 1 && muVec.size() < 1 ) continue;
+          AnaUtil::fillHist1D("evntCutFlow_2e2mu",3,1);
+          if( (eleVec.size() >=1 &&  muVec.size() < 1) ||  (eleVec.size() < 1 &&  muVec.size() >= 1) ) 
+            AnaUtil::fillHist1D("evntCutFlow_2e2mu",4,1);
+          if( (eleVec.size() >= 2 &&  muVec.size() < 1) ||  (eleVec.size() < 1 &&  muVec.size() >= 2) ) 
+            AnaUtil::fillHist1D("evntCutFlow_2e2mu",5,1);  
+          if( (eleVec.size() >= 2 &&  muVec.size() <= 1) ||  (eleVec.size() <= 1 &&  muVec.size() >= 2) ) 
+            AnaUtil::fillHist1D("evntCutFlow_2e2mu",6,1);  
+          if( (eleVec.size() == 2 &&  muVec.size() == 2) ) 
+            AnaUtil::fillHist1D("evntCutFlow_2e2mu",7,1);  
+          ZSelector<vhtm::Muon>(muVec);//what if Z1 is no from muon but from electron?
+          ZSelector<vhtm::Electron>(eleVec);//
+           if( !myZ.empty() ) {
+            AnaUtil::fillHist1D("evntCutFlow_2e2mu",8,1);
+            if( Z1Selector() ) {
+              AnaUtil::fillHist1D("evntCutFlow_2e2mu",9,1);
+              if( Z2Selector() ) {
+                AnaUtil::fillHist1D("evntCutFlow_2e2mu",10,1);
+                plotHmass("evntCutFlow_2e2mu",11);
+              }
+            }
+           }
+        }
+        
+
+        if( eleVec.size() + muVec.size() > 4 )   AnaUtil::fillHist1D("evntCutFlow",3,1); 
+        if( !eleVec.empty() || !muVec.empty() )   AnaUtil::fillHist1D("evntCutFlow",4,1);
+        if( !muVec.empty() )   AnaUtil::fillHist1D("evntCutFlow",5,1); 
+        if( !eleVec.empty() )   AnaUtil::fillHist1D("evntCutFlow",6,1); 
+        if( !tauVec.empty() )   AnaUtil::fillHist1D("evntCutFlow",7,1); 
+        if( muVec.size() >= 2 )   AnaUtil::fillHist1D("evntCutFlow",8,1); 
+        if( eleVec.size() >= 2 )   AnaUtil::fillHist1D("evntCutFlow",9,1);
+        if( muVec.size() >=2 && eleVec.size() >=2 )   AnaUtil::fillHist1D("evntCutFlow",10,1); 
+        if( muVec.size() >=4 )   AnaUtil::fillHist1D("evntCutFlow",11,1);
+        if( eleVec.size() >=4 )   AnaUtil::fillHist1D("evntCutFlow",12,1);
+      }//signal
+
+
+
+    }//event loop
+  // Analysis is over
+  endJob();
+}
+//----
+//Function to select muons
+//id + iso condtions applied
+//----
+void EventSelection::muonSelector() {
+  for (auto it = muonColl()->begin(); it != muonColl()->end(); ++it) {
+    const Muon& muon = (*it);
+    AnaUtil::fillHist1D("muCutFlow",0,1);
+    AnaUtil::fillHist1D("mupt",muon.pt,1);
+    if (abs(muon.eta) >= AnaUtil::cutValue(muonCutMap(), "eta"))                      continue;
+    AnaUtil::fillHist1D("muCutFlow",1,1);
+    if (muon.pt < AnaUtil::cutValue(muonCutMap(), "pt"))                              continue;
+    AnaUtil::fillHist1D("muCutFlow",2,1);
+    if (!muon.isTrackerMuon)                                                          continue;
+    AnaUtil::fillHist1D("muCutFlow",3,1);
+    if (!muon.isGlobalMuonPromptTight)                                                continue;
+    AnaUtil::fillHist1D("muCutFlow",4,1);
+    if (muon.nChambers < AnaUtil::cutValue(muonCutMap(), "nChambers"))                continue;
+    AnaUtil::fillHist1D("muCutFlow",5,1);
+    if (muon.nMatches < AnaUtil::cutValue(muonCutMap(), "nMatches"))                  continue;
+    AnaUtil::fillHist1D("muCutFlow",6,1);
+    if (muon.nMatchedStations < AnaUtil::cutValue(muonCutMap(), "nMatchedStations"))  continue;
+    AnaUtil::fillHist1D("muCutFlow",7,1);
+    if (muon.pixHits < AnaUtil::cutValue(muonCutMap(), "pixHits"))                    continue;
+    AnaUtil::fillHist1D("muCutFlow",8,1);
+    if (muon.trkHits < AnaUtil::cutValue(muonCutMap(), "trkHits"))                    continue;
+    AnaUtil::fillHist1D("muCutFlow",9,1);
+    if (muon.globalChi2 >= AnaUtil::cutValue(muonCutMap(),"globalChi2"))              continue;
+    AnaUtil::fillHist1D("muCutFlow",10,1);
+    if (abs(muon.trkD0) >= AnaUtil::cutValue(muonCutMap(),"trkD0"))                   continue;
+    AnaUtil::fillHist1D("muCutFlow",11,1);
+    AnaUtil::fillHist1D("muptid",muon.pt,1);
+    AnaUtil::fillHist1D("muPFRelIso03",muon.pfRelIso03,1);
+    AnaUtil::fillHist1D("muPFRelIso04",muon.pfRelIso04,1);
+    if( muon.pfRelIso03 < 0.4)
+      AnaUtil::fillHist1D("muptidIso03",muon.pt,1);
+    if( muon.pfRelIso04 < 0.4)
+      AnaUtil::fillHist1D("muptidIso04",muon.pt,1);
+    if( muon.pfRelIso03 > 0.4 )                                                       continue;
+    AnaUtil::fillHist1D("muCutFlow",12,1);
+    AnaUtil::fillHist1D("muAbsSIP3D",std::fabs(muon.dB3D/muon.edB3D),1);
+    AnaUtil::fillHist1D("mudzPV",muon.dzPV,1);
+    if(std::fabs(muon.dB3D/muon.edB3D) > 4. ) continue; 
+    AnaUtil::fillHist1D("muCutFlow",13,1);
+    AnaUtil::fillHist1D("goodmudzPV",muon.dzPV,1);
+    muVec.push_back(muon);
+  }
+ if( !muVec.empty() )           
+   std::sort(muVec.begin(),muVec.end(),PtComparator<vhtm::Muon>());
+}
+//----
+//Function to select electrons
+//id + iso condtions applied
+//----
+void EventSelection::electronSelector() {
+  for (auto it = electronColl()->begin(); it != electronColl()->end(); ++it) {
+    const Electron& electron = (*it);
+    AnaUtil::fillHist1D("eleCutFlow",0,1);
+    AnaUtil::fillHist1D("elept",electron.pt,1);
+    if (electron.pt <= AnaUtil::cutValue(electronCutMap(), "pt")) continue;
+    AnaUtil::fillHist1D("eleCutFlow",1,1);
+    double eleta  = std::fabs(electron.eta);
+    bool   etaCut = (eleta >= AnaUtil::cutValue(electronCutMap(), "etaLow") &&
+	             eleta <= AnaUtil::cutValue(electronCutMap(), "etaUp")) ||
+                     eleta  >= AnaUtil::cutValue(electronCutMap(), "eta");
+    if (etaCut) continue;
+    AnaUtil::fillHist1D("eleCutFlow",2,1);
+    if(!eleId(electron,bunchCrossing())) continue; 
+    AnaUtil::fillHist1D("eleCutFlow",3,1);
+    if (std::fabs(electron.trkD0) >= AnaUtil::cutValue(electronCutMap(),"trkD0")) continue;
+    AnaUtil::fillHist1D("eleCutFlow",4,1);
+    if (std::fabs(electron.vtxDistZ) >= AnaUtil::cutValue(electronCutMap(), "dz")) continue;
+    AnaUtil::fillHist1D("eleCutFlow",5,1);
+    AnaUtil::fillHist1D("eleptid",electron.pt,1);
+    AnaUtil::fillHist1D("elePFRelIso",electron.pfRelIso,1);
+    if (electron.pfRelIso > 0.4) continue;
+    AnaUtil::fillHist1D("eleCutFlow",6,1);
+    AnaUtil::fillHist1D("eleptidIso",electron.pt,1);
+    AnaUtil::fillHist1D("eleAbsSIP3D",std::fabs(electron.dB3D/electron.edB3D),1);
+    AnaUtil::fillHist1D("eledzPV",electron.dzPV,1);
+    if( std::fabs(electron.dB3D/electron.edB3D)  > 4. ) continue;
+    AnaUtil::fillHist1D("goodeledzPV",electron.dzPV,1); 
+    AnaUtil::fillHist1D("eleCutFlow",7,1);
+    eleVec.push_back(electron);
+  }
+ if( !eleVec.empty() ) 
+   std::sort(eleVec.begin(),eleVec.end(),PtComparator<vhtm::Electron>());
+}
+//Tau Selector
+void EventSelection::tauSelector() {
+  int taucounters[] = {0,0,0,0,0,0};
+  for (auto it = tauColl()->begin(); it != tauColl()->end(); ++it) {
+    const Tau& tau = (*it);
+    
+    //    std::cout << "ptTau1 = " << AnaUtil::cutValue(_evselCutMap,"ptTau1")) << std::endl;
+    if (tau.pt < AnaUtil::cutValue(evselCutMap(),"ptTau1")) continue;
+    ++taucounters[0];
+    if( std::fabs(tau.eta) >= AnaUtil::cutValue(evselCutMap(),"etaTau1")) continue;
+    ++taucounters[1];
+    
+    if (tau.decayModeFinding != 1.0) continue;
+    ++taucounters[2];
+    
+    if(tau.chargedIsoPtSum >= 2) continue; /// loose combined Isolation
+    ++taucounters[3];
+    
+    if (tau.againstMuonLoose3 <= 0.5) continue;
+    ++taucounters[4];
+    
+    if (tau.againstElectronLooseMVA5 <= 0.5) continue;
+    ++taucounters[5];
+    
+    
+    tauVec.push_back(tau);
+  }
+}
+//////////New///////////////////////////////////////////////////////////////////////////////////
+template <typename T>
+void EventSelection::ZSelector(const std::vector<T>& lepVec ) {
+//create unique lepton pair combination giving a Z statisfying Z2 mass cuts
+//and push them into a vector
+ for (unsigned int k1=1; k1<lepVec.size(); ++k1) {
+    TLorentzVector mu1P4;
+    mu1P4.SetPtEtaPhiE(lepVec[k1].pt,lepVec[k1].eta,lepVec[k1].phi,lepVec[k1].energy);
+    for (unsigned int k2=0; k2<k1; ++k2) {
+      if (lepVec[k1].charge + lepVec[k2].charge != 0) continue;
+      //std::cout<<"Zselector point 1>>>"<<std::endl;
+      TLorentzVector mu2P4;
+      mu2P4.SetPtEtaPhiE(lepVec[k2].pt,lepVec[k2].eta,lepVec[k2].phi,lepVec[k2].energy);
+      double MZtemp=(mu1P4+mu2P4).M();
+      if( MZtemp >= AnaUtil::cutValue(evselCutMap(),"mZ2lowbound") && MZtemp <= AnaUtil::cutValue(evselCutMap(),"mZ2upperbound") ) {
+	//std::cout<<"Zselector point 2>>>"<<std::endl;
+        Zcand ztmp;
+	ztmp.l1P=mu1P4;
+	ztmp.l2P=mu2P4;
+	ztmp.chargel1=lepVec[k2].charge;
+	ztmp.chargel2=lepVec[k2].charge;
+	if( typeid(lepVec[k1]) == typeid(vhtm::Muon) ) 
+	  ztmp.flavour = Ztype::mumu;
+	else if( typeid(lepVec[k1]) == typeid(vhtm::Electron) ) 
+	  ztmp.flavour= Ztype::ee;
+	else
+	  ztmp.flavour = Ztype::wrong; 
+	ztmp.mass=MZtemp;
+	ztmp.massDiff=std::fabs(MZtemp-MZnominal) ;
+	myZ.push_back(ztmp);
+      }
+    }
+  }
+}
+//-----------------
+//Find a Z1 when myZ vector is filled
+//-----------------
+bool EventSelection::Z1Selector() {
+  bool Z1found = false;
+  std::sort(myZ.begin(),myZ.end(),ZSorter);//sort the z found according to mass diff with nominal Z mass
+  if( myZ[0].mass >= AnaUtil::cutValue(evselCutMap(),"mZ1lowbound") && myZ[0].mass <= AnaUtil::cutValue(evselCutMap(),"mZ1upperbound") )
+    {
+     Z1found = true;
+     myZ1.push_back(myZ[0]);
+     AnaUtil::fillHist1D("newmassZ1select",myZ[0].mass,1);
+    }
+  return Z1found;
+}
+//---------------------------------------
+//Find a Z2;Called if a Z1 is selected already
+//---------------------------------------
+bool EventSelection::Z2Selector() {
+  bool Z2found = false;
+  //std::vector<Zcand> z2temp;
+  if( myZ.size() < 2 ) return Z2found;
+  else{ 
+    for( int i = 1; i < myZ.size(); i++ ) {
+      if( myZ[i].l1P == myZ[0].l1P || myZ[i].l2P == myZ[0].l1P || 
+          myZ[i].l2P == myZ[0].l1P || myZ[i].l2P == myZ[0].l2P ||
+          myZ[i].chargel1 + myZ[i].chargel2 == 0
+        ) continue;
+      Z2found = true;
+      myZ2.push_back(myZ[i]);
+      break;
+    }
+  }
+  return Z2found;
+}
+//---------------------------------------
+void EventSelection::plotHmass(std::string hname,int val) {
+    if(!myZ1.empty() && !myZ2.empty()){
+        //std::cout<<"plotHmass() point 1>>>"<<std::endl;
+        std::vector<TLorentzVector> eventLep;
+        eventLep.push_back(myZ1[0].l1P);
+        eventLep.push_back(myZ1[0].l2P);
+        eventLep.push_back(myZ2[0].l1P);
+        eventLep.push_back(myZ2[0].l2P);
+        AnaUtil::fillHist1D("newmassZ2select",myZ2[0].mass,1);
+        AnaUtil::fillHist1D("newmassZ1Z2select",myZ1[0].mass,1);
+        std::sort(eventLep.begin(),eventLep.end(),PtComparatorTL<TLorentzVector>());
+        //std::cout<<"plotHmass() point 2>>>"<<std::endl;
+        if ( eventLep[0].Pt() > 20. && eventLep[1].Pt() > 10. ) {
+            //std::cout<<"plotHmass() point 3>>>"<<std::endl;
+            AnaUtil::fillHist1D(hname,val,1); 
+            double crossMass1=0.,crossMass2=0., fourlM = 0.;
+            if( myZ1[0].chargel1 + myZ2[0].chargel1 == 0 ) {
+              crossMass1 = (myZ1[0].l1P + myZ2[0].l1P).M();
+              crossMass2 = (myZ1[0].l2P + myZ2[0].l2P).M();
+              fourlM = (myZ1[0].l1P+myZ1[0].l2P+myZ2[0].l1P+myZ2[0].l2P).M();
+            } 
+            else {
+              crossMass1 = (myZ1[0].l1P + myZ2[0].l2P).M();
+              crossMass2 = (myZ1[0].l2P + myZ2[0].l1P).M();
+              fourlM = (myZ1[0].l1P+myZ1[0].l2P+myZ2[0].l1P+myZ2[0].l2P).M();
+            } 
+            AnaUtil::fillHist1D("crossMass1",crossMass1,1); 
+            AnaUtil::fillHist1D("crossMass2",crossMass2,1); 
+            if( crossMass1 > 4. && crossMass2 > 4. ) { 
+              AnaUtil::fillHist1D(hname,val+1,1); 
+              AnaUtil::fillHist1D("evntCutFlow",15,1);
+              if( fourlM > 100. ) {
+              AnaUtil::fillHist1D(hname,val+2,1); 
+              //std::cout<<"lep pts>>>"<<eventLep[0].Pt()<<":"<<eventLep[1].Pt()<<":"
+              //           <<eventLep[2].Pt()<<":"<<eventLep[3].Pt()<<std::endl;
+                AnaUtil::fillHist1D("nl1Pt",eventLep[0].Pt(),1);
+                AnaUtil::fillHist1D("nl2Pt",eventLep[1].Pt(),1);
+                AnaUtil::fillHist1D("nl3Pt",eventLep[2].Pt(),1);
+                AnaUtil::fillHist1D("nl4Pt",eventLep[3].Pt(),1);
+                AnaUtil::fillHist1D("newmassZ2ev",myZ2[0].mass,1);
+                AnaUtil::fillHist1D("newmassZ1ev",myZ1[0].mass,1);
+                AnaUtil::fillHist1D("newmassH",fourlM,1);
+                AnaUtil::fillHist1D("nZ1flav",myZ1[0].flavour,1);
+                AnaUtil::fillHist1D("nZ2flav",myZ2[0].flavour,1);
+                AnaUtil::fillHist1D("dRllZ1",(myZ1[0].l1P).DeltaR(myZ1[0].l2P),1);
+                AnaUtil::fillHist1D("dRllZ2",(myZ2[0].l1P).DeltaR(myZ2[0].l2P),1);
+                createDiscriminant(myZ1[0].l1P,myZ1[0].l2P,myZ2[0].l1P,myZ2[0].l2P);
+                if( !AnaUtil::cutValue(evselCutMap(), "Isbkg") ) {    
+                  AnaUtil::fillHist1D("dRgenZ1recoZ1",(myZ1[0].l1P+myZ1[0].l2P).DeltaR(getP4(genZ[0])),1);
+                  AnaUtil::fillHist1D("dRgenZ2recoZ2",(myZ2[0].l1P+myZ2[0].l2P).DeltaR(getP4(genZ[1])),1);
+                }
+                if( myZ1[0].flavour == Ztype::mumu && myZ2[0].flavour == Ztype::mumu)
+                  AnaUtil::fillHist1D("nEvflav",1,1);//4mu
+                else if( myZ1[0].flavour == Ztype::ee && myZ2[0].flavour == Ztype::ee )
+                  AnaUtil::fillHist1D("nEvflav",3,1);//4e
+                else if( (myZ1[0].flavour == Ztype::mumu && myZ2[0].flavour == Ztype::ee ) || 
+                       (myZ1[0].flavour == Ztype::ee && myZ2[0].flavour == Ztype::mumu ) )
+                  AnaUtil::fillHist1D("nEvflav",5,1);//2e2mu
+                else
+                  AnaUtil::fillHist1D("nEvflav",7,1);//wrong 
+              }
+            }
+        }
+    }
+    //std::cout<<"plotHmass() point 4   >>>"<<std::endl;
+}
+///////////////////////////////////
+//Gen Level Functions
+//////////////////////////////////
+template <typename T>
+TLorentzVector EventSelection::getP4(const T& obj) {
+   TLorentzVector l1;
+   l1.SetPtEtaPhiE(obj.pt,obj.eta,obj.phi,obj.energy);
+   return l1;
+}
+
+int EventSelection::getGenDauPgd(const GenParticle gp) {
+ vector<int> d = gp.daughtIndices;
+ vector<int> dpdgid;
+ int ndau = 0;
+ for (auto it = d.begin(); it != d.end(); ++it) {
+   int di = (*it);
+   if (di >= ngenparticle()) continue;
+   const GenParticle& dgp = genParticleColl()->at(di);
+   int pid = fabs(dgp.pdgId);
+   if(pid==23) continue;
+   dpdgid.push_back(pid);
+ }
+ if(!dpdgid.empty()) 
+   return dpdgid[0];
+ else return -1;
+}
+
+double EventSelection::getHmassfromZdau(const GenParticle Z1,const GenParticle Z2) {
+ vector<int> d1 = Z1.daughtIndices;
+ vector<int> d2 = Z2.daughtIndices;
+ TLorentzVector lZ1,lZ2;
+ lZ1.SetPtEtaPhiE(0.,0.,0.,0.);
+ lZ2.SetPtEtaPhiE(0.,0.,0.,0.);
+ //std::cout<<"Z1 dau size"<<d1.size()<<std::endl;
+ for (auto it = d1.begin(); it != d1.end(); ++it) {
+   int di = (*it);
+   if (di >= ngenparticle()) continue;
+   const GenParticle& dgp = genParticleColl()->at(di);
+   int pid = fabs(dgp.pdgId);
+   //std::cout<<"Z1 dau pdgId"<<pid<<std::endl; 
+   if(pid==23) continue;
+   lZ1+=getP4(dgp);
+ }
+
+ //std::cout<<"Z2 dau size"<<d2.size()<<std::endl;
+ for (auto it = d2.begin(); it != d2.end(); ++it) {
+   int di = (*it);
+   if (di >= ngenparticle()) continue;
+   const GenParticle& dgp = genParticleColl()->at(di);
+   int pid = fabs(dgp.pdgId);
+   //std::cout<<"Z2 dau pdgId"<<pid<<std::endl; 
+   if(pid==23) continue;
+   lZ2+=getP4(dgp);
+ }
+ //std::cout<<"H mass="<<(lZ1+lZ2).M()<<std::endl;
+ return (lZ1+lZ2).M();
+}
+bool EventSelection::genOk() {
+  bool genPass=false;
+  int nHtoZ=0;
+  for (auto jt = genParticleColl()->begin(); jt != genParticleColl()->end(); ++jt) {
+          const GenParticle& gp = (*jt);
+          int pdgid = fabs(gp.pdgId);
+          int status = gp.status;
+          
+          if( pdgid == 25 ) {
+            int mmid = -1;
+            int index = getMotherId(gp, mmid);
+            //cstd::cout<<"Higgs status>>"<< status << "  Mother>>" << index <<std::endl;
+            TLorentzVector l;
+            l.SetPtEtaPhiE(gp.pt,gp.eta,gp.phi,gp.energy);
+            AnaUtil::fillHist1D("genHmass",l.M(),1);
+          }
+//          if (pdgid == 23 && status==2 ) {
+          else if (pdgid == 23 && status == 3 ) {
+            int mmid = -1;
+            int index = getMotherId(gp, mmid);
+            AnaUtil::fillHist1D("genZmother",mmid,1);
+            if (index < 0 || fabs(mmid) != 25) continue; // H decay to Higgs
+            nHtoZ++;
+            genZ.push_back(gp);
+            TLorentzVector l1;
+            l1.SetPtEtaPhiE(gp.pt,gp.eta,gp.phi,gp.energy);
+            AnaUtil::fillHist1D("genZmass",l1.M(),1);
+           //check e mu decay of Z
+           vector<int> d = gp.daughtIndices;
+           int ndau = 0;
+           for (auto it = d.begin(); it != d.end(); ++it) {
+             int di = (*it);
+             if (di >= ngenparticle()) continue;
+             const GenParticle& dgp = genParticleColl()->at(di);
+             int pid = fabs(dgp.pdgId);
+             if (pid == 13) AnaUtil::fillHist1D("nZdauflav",1,1); 
+             else if (pid == 11) AnaUtil::fillHist1D("nZdauflav",3,1);
+             else if (pid == 15) AnaUtil::fillHist1D("nZdauflav",5,1);
+             else AnaUtil::fillHist1D("nZdauflav",7,1);
+           }                
+          }
+        }//gen particle loop
+          std::sort(genZ.begin(),genZ.end(),MassComparator<vhtm::GenParticle>());
+          AnaUtil::fillHist1D("genZ1mass",getP4(genZ[0]).M(),1); 
+          AnaUtil::fillHist1D("genZ2mass",getP4(genZ[1]).M(),1);
+          AnaUtil::fillHist1D("genHmassfromZ",(getP4(genZ[0])+getP4(genZ[1])).M(),1);
+          //Event Flavour
+          if( getGenDauPgd(genZ[0]) == 13 && getGenDauPgd(genZ[1]) == 13 ) {
+            AnaUtil::fillHist1D("nEvntflav",1,1);
+            AnaUtil::fillHist1D("genHmassfromZdau",getHmassfromZdau(genZ[0],genZ[1]),1);
+            genPass=true;
+            evtype=EventType::mmmm;
+          }
+          else if( getGenDauPgd(genZ[0]) == 11 && getGenDauPgd(genZ[1]) == 11 ) {
+            AnaUtil::fillHist1D("nEvntflav",3,1);
+            AnaUtil::fillHist1D("genHmassfromZdau",getHmassfromZdau(genZ[0],genZ[1]),1);
+            genPass=true;
+            evtype=EventType::eeee;
+          }
+          else if( (getGenDauPgd(genZ[0]) == 13 && getGenDauPgd(genZ[1]) == 11) || 
+                   (getGenDauPgd(genZ[0]) == 11 && getGenDauPgd(genZ[1]) == 13 ) ) {
+            AnaUtil::fillHist1D("nEvntflav",5,1);
+            AnaUtil::fillHist1D("genHmassfromZdau",getHmassfromZdau(genZ[0],genZ[1]),1);
+            genPass=true;
+            evtype=EventType::eemm;
+          } else {
+            AnaUtil::fillHist1D("nEvntflav",7,1);
+          //AnaUtil::fillHist1D("genHmassfromZdau",getHmassfromZdau(genZ[0],genZ[1]),1);
+          }
+       if(genPass) {   
+         //std::cout<<"Event Type="<<evtype<<std::endl;
+         //Z1 daughters
+          if (getGenDauPgd(genZ[0]) == 13 ) AnaUtil::fillHist1D("nZ1dauflav",1,1);
+          else if (getGenDauPgd(genZ[0]) == 11) AnaUtil::fillHist1D("nZ1dauflav",3,1);
+          else if (getGenDauPgd(genZ[0]) == 15) AnaUtil::fillHist1D("nZ1dauflav",5,1);
+          else AnaUtil::fillHist1D("nZ1dauflav",7,1);
+          //Z2 daughter
+          if (getGenDauPgd(genZ[1]) == 13 ) AnaUtil::fillHist1D("nZ2dauflav",1,1);
+          else if (getGenDauPgd(genZ[1]) == 11) AnaUtil::fillHist1D("nZ2dauflav",3,1);
+          else if (getGenDauPgd(genZ[1]) == 15) AnaUtil::fillHist1D("nZ2dauflav",5,1);
+          else AnaUtil::fillHist1D("nZ2dauflav",7,1);
+          //AnaUtil::fillHist1D("nEvntflavvv",evtype,1);
+       }
+   return genPass;
+}
+//planar discrimant//////////////////////////////////
+void EventSelection::createDiscriminant(TLorentzVector p1,TLorentzVector p2,TLorentzVector p3,TLorentzVector p4) {
+  TLorentzVector P = p1 + p2 + p3 + p4;
+  TLorentzVector k1 = p1 + p2;
+  TLorentzVector k2 = p3 + p4;
+  TLorentzVector kq;
+  kq.SetPxPyPzE(0.,0.,.5*( P.E()+P.Pz() ),.5*( P.E()+P.Pz() ) );
+  TLorentzVector kqbar;
+  kqbar.SetPxPyPzE(0.,0.,.5*( P.E()-P.Pz() ),.5*( P.E()-P.Pz() ) );
+  
+  double CosTheta =  (-kq.Dot(k1)  + kq.E()*k1.E())/(kq.P()*k1.P());
+  double Theta = TMath::ACos(CosTheta);
+  AnaUtil::fillHist1D("evntTheta_sig",Theta,1);
+  AnaUtil::fillHist1D("evntCosTheta_sig",CosTheta,1);
+
+  double M = P.M();
+  AnaUtil::fillHist1D("evntM",M,1);
+  double E1 = P.Dot(k1)/M;
+  double lambdaZ = TMath::Sqrt( E1*E1 - 2*p1.Dot(p2) );
+
+  double CosTheta2 = ((kqbar - kq).Dot(k1))/(M*lambdaZ);
+  AnaUtil::fillHist1D("evntTheta_sig2",TMath::ACos(CosTheta2),1);
+  AnaUtil::fillHist1D("evntCosTheta_sig2",CosTheta2,1);
+}
+//////////////////////////////////////////////////////////////////////////////////
+void EventSelection::endJob() {
+
+  closeFiles();
+  
+  histf()->cd();
+  histf()->Write();
+  histf()->Close();
+  delete histf();
+}
+
+

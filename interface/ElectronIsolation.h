@@ -40,11 +40,16 @@ public:
   void selectEvent(){};
   virtual void bookHistograms();
   void readRhofitSlope();
+  void electronSelector();
+  void fillHistoforCone(std::string c,double mupt,double ch,double nu,double pu,int ngoodVtx,double fGridRhoFastjetAll);
+    void findExtraelectron();
 public:
   //int nProbe[15];
   //int nSingleCut[15];
 
   std::vector<vhtm::Vertex> vtxList;
+  std::vector<vhtm::Electron> looseeleVec_,extraeleVec_;
+  std::vector<vhtm::Electron> tighteleVec_;
   //std::vector<vhtm::Electron> eleList;
   //std::vector<vhtm::Tau> tauList;
   //std::vector<vhtm::Jet> bjetList;
@@ -57,5 +62,6 @@ public:
   //std::vector<std::string> _triggerPathTagList;
   bool _dumpEvent;
   std::map<std::string,double> rhisoSlope;
+  std::map<std::string,std::string> cone_;
 };
 #endif

@@ -3,11 +3,24 @@
 #define NEL(x) (sizeof((x))/sizeof((x)[0]))
 
 vhtm::Candidate::Candidate():
-  pt(-999), eta(-999), phi(-999)
+  pt(-999), eta(-999), phi(-999) {} vhtm::Candidate::Candidate(float _pt, float _eta, float _phi):
+  pt(_pt), eta(_eta), phi(_phi) {} vhtm::PackedPFCandidate::PackedPFCandidate():
+  pt(-999.),
+  eta(-999.), 
+  phi(-999.),
+  energy(-999.),
+  pdgId(0),
+  charge(-999),
+  vx(-999.),
+  vy(-999.),
+  vz(-999.),
+  fromPV(-999),
+  dxy(-999.),
+  dz(-999.),
+  dxyError(-999.),
+  dzError(-999.)
 {}
-vhtm::Candidate::Candidate(float _pt, float _eta, float _phi):
-  pt(_pt), eta(_eta), phi(_phi)
-{}
+
 vhtm::Event::Event():
   run(0),
   event(0),
@@ -74,6 +87,7 @@ vhtm::Electron::Electron():
   scPhi(-999),
   scET(-999),
   scRawEnergy(-999),
+  BDT(-999),
   dxyPV(-999),
   dzPV(-999),
   vtxDist3D(-999),
@@ -85,9 +99,14 @@ vhtm::Electron::Electron():
   neutralHadronIso(-999),
   photonIso(-999),
   sumChargedHadronPt(-999),
+  sumNeutralHadronEt(-999.),
+  sumPhotonEt(-999.),
   sumPUPt(-999),
   missingHits(-1),
   dB(-999),
+  edB(-999),
+  dB3D(-999),
+  edB3D(-999),
   nBrems(-1),
   fbrem(-999),
   hasMatchedConv(false),
@@ -204,8 +223,10 @@ vhtm::Tau::Tau():
   isoGammaList.clear();
 }
 vhtm::Muon::Muon():
+  isGlobalMuon(false),
   isTrackerMuon(false),
   isPFMuon(false),
+  isghostCleaned(false),
   eta(-999),
   phi(-999),
   pt(-999),
@@ -214,16 +235,23 @@ vhtm::Muon::Muon():
   charge(-999),
   trkD0(-999),
   trkDz(-999),
-  globalChi2(-999),
+  muonBestTrackType(-999),
+  globalChi2(9999.),
+  tkNChi2(9999.),
   trkIso(-999),
   ecalIso(-999),
   hcalIso(-999),
   hoIso(-999),
   pfChargedIsoR03(-999),
+  pfNeutralHadIsoR03(999.),
+  pfPhotonIso03(999.),
   sumPUPt03(-999),
   pfRelIso03(-1),
-  pfChargedIsoR04(-999),
-  sumPUPt04(-999),
+  sumChargedParticlePt(999.),
+  sumChargedHadronPt(999.),
+  sumNeutralHadronEt(999.),
+  sumPhotonEt(999.),
+  sumPUPt(999.),   
   pfRelIso04(-1),
   passID(false),
   dxyPV(-999),
@@ -240,6 +268,9 @@ vhtm::Muon::Muon():
   vy(-999),
   vz(-999),
   dB(-999),
+  edB(-999),
+  dB3D(-999),
+  edB3D(-999),
   isGlobalMuonPromptTight(false),
   isAllArbitrated(false),
   nChambers(-1),
@@ -249,6 +280,7 @@ vhtm::Muon::Muon():
   stationGapMaskDistance(0),
   stationGapMaskPull(0),
   muonID(false),
+  nSegments(-1),
   selbit(0)
 {}
 
@@ -284,6 +316,7 @@ vhtm::Jet::Jet():
   //combinedSecondaryVertexMVABTag(-999),
   combinedInclusiveSecondaryVertexBTag(-999),
   //combinedMVABTag(-999),
+  jpumva(9999.),
   passLooseID(-1),
   passTightID(-1),
   selbit(0) 
@@ -299,7 +332,7 @@ vhtm::Vertex::Vertex():
   yErr(-999),
   zErr(-999),
   rho(-999),
-  chi2(-999),
+  chi2(999.),
   ndf(-1),
   //ntracks(-1),
   //ntracksw05(-1),
@@ -356,6 +389,7 @@ vhtm::Photon::Photon():
   isEEGap(false),
   isEBEEGap(false),
   fidFlag(0),
+  passElectronVeto(false),
   hasPixelSeed(false),
   ecalIso(-9999),
   hcalIso(-999),

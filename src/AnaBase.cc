@@ -308,6 +308,7 @@ bool AnaBase::readJob(const string& jobFile, int& nFiles)
   hmap.insert(pair<string, map<string, double>* >("packedPFCandidateCutList", &packedPFCandidateCutMap_));
   hmap.insert(pair<string, map<string, double>* >("tauCutList", &tauCutMap_));
   hmap.insert(pair<string, map<string, double>* >("bjetCutList", &bjetCutMap_));
+  hmap.insert(pair<string, map<string, double>* >("jetCutList", &jetCutMap_));
   hmap.insert(pair<string, map<string, double>* >("evselCutList", &evselCutMap_));
   
   char buf[BUF_SIZE];

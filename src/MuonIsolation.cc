@@ -277,11 +277,6 @@ void MuonIsolation::bookHistograms()
     new TH1F("QrhoFac_045","Rho for cone size 0.45",200,0.,.6);
 
 }
-//---------------------------------
-// Read Slope from NIso vs Rho fits
-//---------------------------------
-void MuonIsolation::readRhofitSlope() {
-}
 //----------------------------------------------
 //Fill Histo for a cone
 //----------------------------------------------
@@ -346,15 +341,9 @@ void MuonIsolation::fillHistoforCone(std::string c,double mupt,double ch,double 
 // -------------------
 void MuonIsolation::clearLists() {
  vtxList.clear();
- eventMuons.clear();
 }
 void MuonIsolation::eventLoop() 
 {
-  readRhofitSlope();
-  for(auto& p:rhisoSlope) {
-    std::cout<<p.first<<">>>"<<p.second<<std::endl;
-  }
-  // Initialize analysis
   if (!beginJob()) return;
   int nPrint = max(10000, nEvents()/1000);
 

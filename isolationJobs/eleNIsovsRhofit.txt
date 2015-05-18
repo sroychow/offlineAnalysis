@@ -1,0 +1,51 @@
+NIso015vsrho
+Warning: Automatic variable fitval is allocated fitRhoIso.C:3:
+Info in <TCanvas::MakeDefCanvas>:  created default TCanvas with name c1
+ FCN=33.6413 FROM MIGRAD    STATUS=CONVERGED      38 CALLS          39 TOTAL
+                     EDM=4.50206e-22    STRATEGY= 1      ERROR MATRIX ACCURATE 
+  EXT PARAMETER                                   STEP         FIRST   
+  NO.   NAME      VALUE            ERROR          SIZE      DERIVATIVE 
+   1  Constant     2.04962e-01   2.10625e-02   1.80153e-05   2.95808e-09
+   2  Slope        2.13756e-02   9.13037e-04   7.80945e-07   9.09850e-08
+Slope=0.0213756
+Constant=0.204962
+NIso020vsrho
+ FCN=52.3242 FROM MIGRAD    STATUS=CONVERGED      38 CALLS          39 TOTAL
+                     EDM=2.11817e-21    STRATEGY= 1      ERROR MATRIX ACCURATE 
+  EXT PARAMETER                                   STEP         FIRST   
+  NO.   NAME      VALUE            ERROR          SIZE      DERIVATIVE 
+   1  Constant     2.96001e-01   2.61554e-02   2.81814e-05  -7.56396e-09
+   2  Slope        3.69784e-02   1.13872e-03   1.22693e-06  -1.88215e-07
+Slope=0.0369784
+Constant=0.296001
+NIso025vsrho
+ FCN=48.5881 FROM MIGRAD    STATUS=CONVERGED      38 CALLS          39 TOTAL
+                     EDM=8.97365e-22    STRATEGY= 1      ERROR MATRIX ACCURATE 
+  EXT PARAMETER                                   STEP         FIRST   
+  NO.   NAME      VALUE            ERROR          SIZE      DERIVATIVE 
+   1  Constant     4.05106e-01   3.12096e-02   3.22531e-05  -1.87257e-09
+   2  Slope        5.43216e-02   1.36043e-03   1.40591e-06  -1.26349e-08
+Slope=0.0543216
+Constant=0.405106
+NIso030vsrho
+ FCN=68.6178 FROM MIGRAD    STATUS=CONVERGED      38 CALLS          39 TOTAL
+                     EDM=5.55084e-21    STRATEGY= 1      ERROR MATRIX ACCURATE 
+  EXT PARAMETER                                   STEP         FIRST   
+  NO.   NAME      VALUE            ERROR          SIZE      DERIVATIVE 
+   1  Constant     5.16656e-01   3.50674e-02   4.35141e-05  -8.98097e-09
+   2  Slope        7.44213e-02   1.52967e-03   1.89812e-06  -2.24604e-07
+Slope=0.0744213
+Constant=0.516656
+NIso035vsrho
+ FCN=100.347 FROM MIGRAD    STATUS=CONVERGED      38 CALLS          39 TOTAL
+                     EDM=2.98822e-21    STRATEGY= 1      ERROR MATRIX ACCURATE 
+  EXT PARAMETER                                   STEP         FIRST   
+  NO.   NAME      VALUE            ERROR          SIZE      DERIVATIVE 
+   1  Constant     6.64343e-01   3.85648e-02   5.80526e-05   3.67189e-09
+   2  Slope        9.50585e-02   1.67457e-03   2.52077e-06   4.22812e-08
+Slope=0.0950585
+Constant=0.664343
+NIso040vsrho
+Warning in <Fit>: Fit data is empty 
+Slope=0
+Constant=0

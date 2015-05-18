@@ -192,6 +192,7 @@ public:
   const std::map<std::string, double>& electronCutMap() const {return electronCutMap_;}
   const std::map<std::string, double>& tauCutMap() const {return tauCutMap_;}
   const std::map<std::string, double>& bjetCutMap() const {return bjetCutMap_;}
+  const std::map<std::string, double>& jetCutMap() const {return jetCutMap_;}
   const std::map<std::string, double>& evselCutMap() const {return evselCutMap_;}
   const std::map<std::string, int>& eventIdMap() const {return eventIdMap_;}
 
@@ -199,6 +200,14 @@ public:
 
   int bunchCrossing() const {return bunchCrossing_;}
   
+  void showEventNumber(bool addNewline=true, std::ostream& os=std::cout) const {
+    const vhtm::Event& evt = eventList_->at(0);
+    std::cout << ">>> Event " << evt.event 
+              << " Lumis " << evt.lumis 
+              << " Run " << evt.run;
+    if (addNewline) std::cout << std::endl;
+  }
+
 public:
   double puevWt_;
   bool emt, eet, mmt;
@@ -264,6 +273,7 @@ private:
   std::map<std::string, double> electronCutMap_;
   std::map<std::string, double> tauCutMap_;
   std::map<std::string, double> bjetCutMap_;
+  std::map<std::string, double> jetCutMap_;
   std::map<std::string, double> evselCutMap_;
   std::map<std::string, int> eventIdMap_;
 

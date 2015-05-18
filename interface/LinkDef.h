@@ -12,6 +12,8 @@
 #pragma link C++ nestedtypedef;
 #pragma link C++ class vhtm::Candidate+;
 #pragma link C++ class std::vector<vhtm::Candidate>+;
+#pragma link C++ class vhtm::PackedPFCandidate+;
+#pragma link C++ class std::vector<vhtm::PackedPFCandidate>+;
 #pragma link C++ class vhtm::Event+;
 #pragma link C++ class std::vector<vhtm::Event>+;
 #pragma link C++ class vhtm::GenEvent+;
