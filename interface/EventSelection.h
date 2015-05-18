@@ -17,22 +17,24 @@
 
 #include "PhysicsObjects.h"
 #include "AnaBase.h"
+#include "PhysicsObjSelector.h"
 
 
-class EventSelection : public AnaBase {
+class EventSelection : public PhysicsObjSelector {
     
 public:
-  enum eventType
+  enum EventType
   {
-   mmmm,eeee,eemm
+   mmmm=0,eeee,eemm
   };
   enum Ztype
   {
-   mumu,ee
+   mumu=0,ee,wrong
   };
   struct Zcand {
     TLorentzVector l1P;
     TLorentzVector l2P;
+    TLorentzVector fsrPhoP;
     int chargel1;
     int chargel2;
     int flavour;//0for mumu//1 for ee//2 for others
@@ -50,53 +52,71 @@ public:
 
   void selectEvent(){};
   virtual void bookHistograms();
-  void muonSelector(); 
-  void tauSelector(); 
-  void electronSelector();  
  // template <typename T>
- // bool Z1Selector(const std::vector<T>& lepVec,std::vector< std::pair<T,T> >& Z1);
+ // bool Z1Selector();
  // template <typename T1,typename T2>
- // bool Z2Selector(std::vector< std::pair<T1,T1> >& Z1,std::vector< std::pair<T2,T2> >& Z2,const std::vector<T2>& lepVec);
+ // bool Z2Selector();
  // template <typename T>
  // void plotZmass(std::string ztype,std::pair<T,T> Z);
  // template <typename T1,typename T2>
  // void plotHmass(std::pair<T1,T1> Z1,std::pair<T2,T2> Z2);
-  void plotHmass();//plot Higgs mass from struct method
-  template <typename T>
-  void ZSelector(const std::vector<T>& lepVec);
+ // void plotHmass(std::string hname,int val);//plot Higgs mass from struct method
+ // template <typename T>
+ // void ZSelector( std::vector< std::pair< T, std::vector<vhtm::PackedPFCandidate> > > lepFSRVec);
+    
+  
+    void ZSelector( std::vector< std::pair< vhtm::Muon, std::vector<vhtm::PackedPFCandidate> > > lepFSRVec);
+    
+    void ZSelector( std::vector< std::pair< vhtm::Electron, std::vector<vhtm::PackedPFCandidate> > > lepFSRVec);
  // template <typename T>
  // void Z2Selector(const std::vector<T>& lepVec);  
   static bool ZSorter(const Zcand &a, const Zcand &b) {
     return a.massDiff < b.massDiff;
   }
+    template <typename T>
+    double calcDBLepIso(T,double phoEnergy);
+    template <typename T>
+    double calcRhoLepIso(T lep,double phoEnergy, double effArea, double rho);
+    double getEleRhoEffectiveArea( double fSCeta);
+    int ZZselector(Zcand, Zcand);
+    void final4lSelector(int run, int lumi,int event);
 //Functions for gen Level
   template <typename T>
   TLorentzVector getP4(const T& obj);
   int getGenDauPgd(const vhtm::GenParticle gp);
   double getHmassfromZdau(const vhtm::GenParticle Z1,const vhtm::GenParticle Z2);
   bool genOk();
+  //void createDiscriminant(TLorentzVector,TLorentzVector,TLorentzVector,TLorentzVector);
+  void syncDumper(int run, int lumi,int event,Zcand Z1,Zcand Z2);
+  
+    void selectFSRPhoforlepton( TLorentzVector lep1P4,TLorentzVector lep2P4,
+                                std::vector<vhtm::PackedPFCandidate> lep1prePhoVec,
+                                std::vector<vhtm::PackedPFCandidate>& lep1PhoVec);
+    int selectBestFSRforlepton( TLorentzVector lepP4, std::vector<vhtm::PackedPFCandidate> lepPhoVec);
 public:
-  //int nProbe[15];
-  //int nSingleCut[15];
 
-  std::vector<vhtm::Vertex> vtxList;
-  std::vector<vhtm::Electron> eleVec;
-  std::vector<vhtm::Muon> muVec;
-  std::vector<vhtm::Tau> tauVec;
-  //std::vector<vhtm::TriggerObject> trigObjList;
-public:
-  //std::map<std::string, double> _evselCutMap;
-  //std::vector<std::string> _triggerPathTagList;
+    std::vector<vhtm::Vertex> vtxList;
+    std::vector<vhtm::Electron> looseeleVec,tighteleVec;
+    std::vector<vhtm::Muon> loosemuVec,tightmuVec;
+    std::vector<vhtm::PackedPFCandidate> pfPhoFSR;
+    std::vector< std::pair< vhtm::Electron, std::vector<vhtm::PackedPFCandidate> >> eleFSRPhopair;
+    std::vector< std::pair< vhtm::Muon, std::vector<vhtm::PackedPFCandidate> > > muFSRPhopair;
+    std::vector< std::pair< Zcand, Zcand> > ZZvec;
   bool _dumpEvent;
-  const double MZnominal=91.1876;
+  const double MZnominal=91.188;
   double Mzdiff;//|difference of Z1-Z mass|
   std::vector< std::pair<vhtm::Muon,vhtm::Muon> > Z1mu,Z2mu;
   std::vector< std::pair<vhtm::Electron,vhtm::Electron> > Z1ele,Z2ele;
   bool Z1present,Z2present,Z1tomu,Z1toele;
   std::vector<Zcand> myZ1,myZ2;
+  std::vector<Zcand> myZ;
   Zcand Z2actual;
   int n4mu,n2e2mu,n4e,nZ1clash,ntauev=0;
   std::vector<vhtm::GenParticle> genZ;
+  int evtype;
+   double fGridRhoFastjetAll_;
+  ofstream syncDumpf;
+  
 };
 #endif
 

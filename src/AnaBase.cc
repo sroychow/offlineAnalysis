@@ -56,7 +56,9 @@ AnaBase::AnaBase()
     genEventList_(new vector<vhtm::GenEvent>()),   
     tauList_(new vector<vhtm::Tau>()),    
     electronList_(new vector<vhtm::Electron>()),
-    muonList_(new vector<vhtm::Muon>()),    
+    muonList_(new vector<vhtm::Muon>()),   
+    photonList_(new vector<vhtm::Photon>()),
+    packedPFCandidateList_(new vector<vhtm::PackedPFCandidate>()),
     jetList_(new vector<vhtm::Jet>()),    
     metList_(new vector<vhtm::MET>()),    
     genParticleList_(new vector<vhtm::GenParticle>()),  
@@ -103,6 +105,8 @@ AnaBase::~AnaBase()
   delete tauList_;
   delete electronList_;
   delete muonList_;
+  delete photonList_;
+    delete packedPFCandidateList_;
   delete jetList_;
   delete metList_;
   delete genParticleList_;
@@ -122,6 +126,8 @@ void AnaBase::clearEvent()
   if (tauList_) tauList_->clear();
   if (electronList_) electronList_->clear();
   if (muonList_) muonList_->clear();
+  if (photonList_) photonList_->clear();
+    if(packedPFCandidateList_) packedPFCandidateList_->clear();
   if (jetList_) jetList_->clear();
   if (metList_) metList_->clear();
   if (genParticleList_) genParticleList_->clear();
@@ -229,6 +235,8 @@ void AnaBase::setAddresses()
   if (branchFound("Tau"))  chain_->SetBranchAddress("Tau", &tauList_);
   if (branchFound("Electron")) chain_->SetBranchAddress("Electron", &electronList_);
   if (branchFound("Muon")) chain_->SetBranchAddress("Muon", &muonList_);
+  if (branchFound("Photon")) chain_->SetBranchAddress("Photon", &photonList_);
+  if (branchFound("PackedPFCandidate")) chain_->SetBranchAddress("PackedPFCandidate", &packedPFCandidateList_);
   if (branchFound("Jet")) chain_->SetBranchAddress("Jet", &jetList_);
   if (branchFound("MET")) chain_->SetBranchAddress("MET", &metList_);
   if (readTrigObject_ && branchFound("TriggerObject")) 
@@ -296,6 +304,8 @@ bool AnaBase::readJob(const string& jobFile, int& nFiles)
   hmap.insert(pair<string, map<string, double>* >("vtxCutList", &vtxCutMap_));
   hmap.insert(pair<string, map<string, double>* >("electronCutList", &electronCutMap_));
   hmap.insert(pair<string, map<string, double>* >("muonCutList", &muonCutMap_));
+  hmap.insert(pair<string, map<string, double>* >("photonCutList", &photonCutMap_));
+  hmap.insert(pair<string, map<string, double>* >("packedPFCandidateCutList", &packedPFCandidateCutMap_));
   hmap.insert(pair<string, map<string, double>* >("tauCutList", &tauCutMap_));
   hmap.insert(pair<string, map<string, double>* >("bjetCutList", &bjetCutMap_));
   hmap.insert(pair<string, map<string, double>* >("evselCutList", &evselCutMap_));
@@ -445,9 +455,10 @@ void AnaBase::findVtxInfo(vector<Vertex>& list, Options& op, ostream& os) {
     double dxy = sqrt(pow(vtx.x, 2) + pow(vtx.y, 2));
     int sbit = 0;
     if (vtx.ndf <= AnaUtil::cutValue(vtxCutMap_, "ndf"))    sbit |= (1 << 0);
-    if (dxy >= AnaUtil::cutValue(vtxCutMap_, "dxy"))         sbit |= (1 << 1);
-    if (std::fabs(vtx.z) >= AnaUtil::cutValue(vtxCutMap_, "z"))   sbit |= (1 << 2);
-
+    //if (dxy >= AnaUtil::cutValue(vtxCutMap_, "dxy"))         sbit |= (1 << 1);
+    if( vtx.rho > AnaUtil::cutValue(vtxCutMap_, "Rho") )    sbit |= ( 1 << 1 );
+    if (std::fabs(vtx.z) > AnaUtil::cutValue(vtxCutMap_, "z"))   sbit |= (1 << 2);
+    if( vtx.isfake )  sbit |= (1 << 3);
     if (op.verbose) {
       bool pp = (op.printselected && sbit) ? false : true;
       if (pp) {

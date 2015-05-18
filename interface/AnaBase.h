@@ -74,7 +74,7 @@ public:
   AnaBase();
   virtual ~AnaBase();
     
-  virtual void eventLoop() = 0;  // the main analysis 
+  virtual void eventLoop() = 0;  // the main analysis
   virtual bool beginJob();
   virtual void endJob() = 0;
 
@@ -140,6 +140,8 @@ public:
   const std::vector<vhtm::Tau>* tauColl() const {return tauList_;}
   const std::vector<vhtm::Electron>* electronColl() const {return electronList_;}
   const std::vector<vhtm::Muon>* muonColl() const {return muonList_;}
+  const std::vector<vhtm::Photon>* photonColl() const {return photonList_;}
+  const std::vector<vhtm::PackedPFCandidate>* packedPFCandidateColl() const {return packedPFCandidateList_;}
   const std::vector<vhtm::Jet>* jetColl() const {return jetList_;}
   const std::vector<vhtm::MET>* metColl() const {return metList_;}
   const std::vector<vhtm::GenParticle>* genParticleColl() const {return genParticleList_;}
@@ -157,6 +159,8 @@ public:
   int nvertex() const {return vertexList_->size();}
   int nelectron() const {return electronList_->size();}
   int nmuon() const {return muonList_->size();}
+  int nphoton() const {return photonList_->size();}
+  int npackedPFCandidate() const { return packedPFCandidateList_->size(); }
   int ntau() const {return tauList_->size();}
   int njet() const {return jetList_->size();}
   int nmet() const {return metList_->size();}
@@ -183,6 +187,8 @@ public:
 
   const std::map<std::string, double>& vtxCutMap() const {return vtxCutMap_;}
   const std::map<std::string, double>& muonCutMap() const {return muonCutMap_;}
+  const std::map<std::string, double>& photonCutMap() const {return photonCutMap_;}
+  const std::map<std::string, double>& packedPFCandidateCutMap() const {return packedPFCandidateCutMap_;}
   const std::map<std::string, double>& electronCutMap() const {return electronCutMap_;}
   const std::map<std::string, double>& tauCutMap() const {return tauCutMap_;}
   const std::map<std::string, double>& bjetCutMap() const {return bjetCutMap_;}
@@ -209,6 +215,8 @@ private:
   std::vector<vhtm::Tau>* tauList_;
   std::vector<vhtm::Electron>* electronList_;
   std::vector<vhtm::Muon>* muonList_;
+  std::vector<vhtm::Photon>* photonList_;
+  std::vector<vhtm::PackedPFCandidate>* packedPFCandidateList_;
   std::vector<vhtm::Jet>* jetList_;
   std::vector<vhtm::MET>* metList_;
   std::vector<vhtm::GenParticle>* genParticleList_;
@@ -251,6 +259,8 @@ private:
 
   std::map<std::string, double> vtxCutMap_;
   std::map<std::string, double> muonCutMap_;
+  std::map<std::string, double> photonCutMap_;
+  std::map<std::string, double> packedPFCandidateCutMap_;
   std::map<std::string, double> electronCutMap_;
   std::map<std::string, double> tauCutMap_;
   std::map<std::string, double> bjetCutMap_;

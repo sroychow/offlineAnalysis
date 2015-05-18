@@ -17,9 +17,40 @@ namespace vhtm {
     float pt;
     float eta;
     float phi;
-
+   
     ClassDef(Candidate,1)
   };
+
+  class PackedPFCandidate: public TObject {
+  public:
+    PackedPFCandidate();
+    //Candidate(float pt, float eta, float phi);
+    virtual ~PackedPFCandidate() {}
+
+    float pt;
+    float eta;
+    float phi;
+    float energy;
+    
+    int pdgId;
+    int charge;
+    
+    double vx;
+    double vy;
+    double vz;
+   
+    int fromPV;
+    //w.r.t PV
+    float dxy;
+    float dz;
+    float dxyError;
+    float dzError;
+
+    std::map< std::string,std::vector<double> > isolationMap;
+
+    ClassDef(PackedPFCandidate,1)
+  };
+ 
   class Event: public TObject {
   public:
     Event();
@@ -107,7 +138,7 @@ namespace vhtm {
     double scPhi;
     double scET;
     double scRawEnergy;
-  
+    float BDT;  
     // Vertex association variables
     double dxyPV;
     double dzPV;
@@ -122,13 +153,15 @@ namespace vhtm {
     float photonIso;
 
     float sumChargedHadronPt;
+    float sumNeutralHadronEt;
+    float sumPhotonEt;
     float sumPUPt;
 
     int missingHits;
 
-    double dB;//2D
+    double dB;
     double edB;    
-  
+
     double dB3D;
     double edB3D;    
 
@@ -143,6 +176,7 @@ namespace vhtm {
     int selbit;
 
     std::map< std::string,std::vector<double> > isolationMap;
+
     ClassDef(Electron, 1)
   };
   class GenParticle: public TObject {
@@ -284,6 +318,7 @@ namespace vhtm {
   public:
     Muon();
     ~Muon() {}
+    bool isGlobalMuon;
     bool isTrackerMuon;
     bool isPFMuon;
     double eta;
@@ -298,14 +333,22 @@ namespace vhtm {
     double trkDz;
 
     double globalChi2;
+    double tkNChi2;
+
     float trkIso;
     float ecalIso;
     float hcalIso;
     float hoIso;
     float pfChargedIsoR03;
+    float pfNeutralHadIsoR03;
+    float pfPhotonIso03;    
     float sumPUPt03;
     float pfRelIso03;
+
+    float pfChargedIsoR04emu;
     float pfChargedIsoR04;
+    float pfNeutralHadIsoR04;
+    float pfPhotonIso04;    
     float sumPUPt04;
     float pfRelIso04;
     
@@ -330,7 +373,7 @@ namespace vhtm {
   
     double dB3D;
     double edB3D;    
- 
+
     // UW Recommendation
     bool isGlobalMuonPromptTight;
     bool isAllArbitrated;
@@ -386,8 +429,11 @@ namespace vhtm {
     float combinedSecondaryVertexBTag;
     //double combinedSecondaryVertexMVABTag;
     float combinedInclusiveSecondaryVertexBTag;
+    float combinedInclusiveSecondaryVertexV2BJetTags;
     //double combinedMVABTag;
     std::map<std::string, float> discrimap;
+    
+    float jpumva;
 
     int passLooseID;
     int passTightID;
@@ -410,11 +456,11 @@ namespace vhtm {
     double rho;
     double chi2;
     double ndf;
-    //int ntracks;
-    int ntracksw05;//************************//
+    int ntracks;
+    int ntracksw05;
     bool isfake;
     bool isvalid;
-    double sumPt; // vector sum//**********************//
+    double sumPt; // vector sum
   
     int selbit;
 
@@ -493,6 +539,7 @@ namespace vhtm {
     bool isEBEEGap;
     int fidFlag;
     
+    bool passElectronVeto;
     bool hasPixelSeed;
     double ecalIso;
     double hcalIso;
@@ -533,6 +580,8 @@ namespace vhtm {
     
     int selbit;
   
+    std::map< std::string,std::vector<double> > isolationMap;
+
     ClassDef(Photon, 1)
   };
 }
