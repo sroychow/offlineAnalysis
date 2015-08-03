@@ -40,6 +40,9 @@ public:
   template <typename T>
     void ZSelector(const std::vector<std::pair<T, std::vector<vhtm::PackedPFCandidate> > >& lepPhotonPairVec, std::vector<ZCandidate>& candList);
 
+  template <typename T>
+    void leptauSelector(const std::vector<std::pair<T, std::vector<vhtm::PackedPFCandidate> > >& lepPhotonPairVec, const std::vector<vhtm::Tau> tauVec, const ZCandidate& eventZ,std::vector<ZCandidate>& leptauList);
+
   void ZZselector();
   void finalZZSelector(int run, int lumi, int event);
   int findExtraLeptons(const ZCandidate& Z1, const ZCandidate& Z2);
@@ -52,12 +55,18 @@ public:
   static bool hasJetPair(const std::vector<vhtm::Jet>& jetList);
   //static void ZZkbg(const ZCandidate& Z1, const ZCandidate& Z2, const TLorentzVector& jet1P4, const TLorentzVector& jet2P4,
   //		    int nJets, std::map<std::string, double>& kd);
-
+  static bool dmComparator(ZCandidate& a,ZCandidate& b) {
+    return (a.massDiff < b.massDiff);
+  }
+  static bool massComparator(ZCandidate& a,ZCandidate& b) {
+    return (a.mass > b.mass);
+  }
 public:
   std::vector<vhtm::Vertex> vtxList_;
   std::vector<std::pair<ZCandidate, ZCandidate> > ZZPairVec_;
 
   std::vector<ZCandidate> ZCandList_;
+  std::vector<ZCandidate> leptauCandList_;
   std::vector<vhtm::GenParticle> genZList_;
   bool checkGen_;
   bool dumpGenInfo_;
