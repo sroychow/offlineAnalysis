@@ -13,16 +13,17 @@ muonCutList eta=2.4 pt=5. dxyPV=0.5 dzPV=1. SIP3D=4.
 electronCutList pt=7. eta=2.5 dxyPV=0.5 dzPV=1. missingHits=1 SIP3D=4.
 tauCutList eta=2.3 pt=10 dz=0.2 muVeto=0.5 eleVeto=0.5
 bjetCutList eta=2.4 pt=20 useTCHE=0 TCHECut=3.3 SVHECut=1.74
-jetCutList eta=4.7 pt=30 dRlep=0.4 btagFactor=0.814
-evselCutList Isbkg=0 selectEvType=0 evType=1 CRtype=1 osCRtype=0
+evselCutList Isbkg=0 selectEvType=0 evType=1 CRtype=0 osCRtype=0
 useTrigger 1
 trigPathList HLT_Ele23_Ele12_CaloId_TrackId_Iso_v HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_v
 trigPathList HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_v
 trigPathList HLT_Mu8_TrkIsoVVL_Ele23_Gsf_CaloId_TrackId_Iso_MediumWP_v
 trigPathList HLT_Mu23_TrkIsoVVL_Ele12_Gsf_CaloId_TrackId_Iso_MediumWP_v
 trigPathList HLT_Ele17_Ele12_Ele10_CaloId_TrackId_v
-inputFile ../anaTrees/DYJetsSkimmedCRminiAODtree.root
+inputFile /afs/cern.ch/work/s/sroychow/public/HZZ4l/CMSSW_7_2_0_patch1/src/DYJetsSkimmedCRminiAODtree.root
 dumpGenInfo 0
-useEventList 1
-eventId 2315970 23174 1
+useEventList 0
+eventId 1 62212 6217573
+#eventId 1 65860 6582149
+#eventId 1 32691 3267187
 END

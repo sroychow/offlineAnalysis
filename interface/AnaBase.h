@@ -26,13 +26,6 @@ class AnaBase;
 class TChain;
 class TFile;
 
-class VertexComparator {
-public:
-  bool operator()(const vhtm::Vertex &a, const vhtm::Vertex &b) const {
-    return a.sumPt > b.sumPt;
-  }
-};
-
 template <class T>
 class PtComparator {
 public:
@@ -54,8 +47,8 @@ class MassComparator {
 public:
   bool operator()(const T &a, const T &b) const {
     TLorentzVector l1,l2;
-    l1.SetPtEtaPhiE(a.pt,a.eta,a.phi,a.energy);
-    l2.SetPtEtaPhiE(b.pt,b.eta,b.phi,b.energy);
+    l1.SetPtEtaPhiE(a.pt, a.eta, a.phi, a.energy);
+    l2.SetPtEtaPhiE(b.pt, b.eta, b.phi, b.energy);
     return l1.M() > l2.M();
   }
 };
@@ -89,9 +82,15 @@ public:
   virtual void closeFiles(); 
   virtual bool readJob(const std::string& jobFile, int& nFiles);
   virtual void printJob(std::ostream& os=std::cout) const;
-
+  void showEventNumber(bool addNewline=true, std::ostream& os=std::cout) const {
+    const vhtm::Event& evt = eventList_->at(0);
+    std::cout << ">>> Run " << evt.run
+	      << " Lumis " << evt.lumis 
+	      << " Event " << evt.event;
+    if (addNewline) std::cout << std::endl;
+  }
   bool isTriggered(bool check_prescale=true, bool verbose=false) const;
-  void dumpTriggerPaths(std::ostream& os=std::cout, bool check_prescale=true) const;
+  virtual void dumpTriggerPaths(std::ostream& os=std::cout, bool check_prescale=true) const;
   void dumpTriggerObjectInfo(const std::vector<vhtm::TriggerObject>& list, std::ostream& os=std::cout) const;
   double wtPileUp(int& nPU) const;
   bool readPileUpHist();
@@ -122,8 +121,6 @@ public:
   void findGenInfo(int leptonId, std::vector<vhtm::GenParticle>& genLepList, std::vector<vhtm::GenParticle>& genTauList);
   void findLLTGenInfo( std::vector<vhtm::GenParticle>& genMuList, std::vector<vhtm::GenParticle>& genElList, 
 		       std::vector<vhtm::GenParticle>& genTauList);
-  //int vetoMuon(double zvTau, double vetoPtCut, double dzTauCut);
-  //int vetoElectron(double zvTau, double vetoPtCut, double dzTauCut);
   int vetoMuon(double vetoPtCut, double dzTauCut);
   int vetoElectron(double vetoPtCut, double dzTauCut);
   int vetoElectronSpl(double vetoPtCut);
@@ -148,7 +145,6 @@ public:
   const std::vector<vhtm::GenJet>* genJetColl() const {return genJetList_;}
   const std::vector<vhtm::GenMET>* genMetColl() const {return genMetList_;}
   const std::vector<vhtm::TriggerObject>* triggerObjColl() {return triggerObjList_;}
-  //const std::vector<vhtm::Track>* trackColl() const {return trackList_;}
 
   const std::vector<int>* l1physbits() const {return l1physbits_;}
   const std::vector<int>* l1techbits() const {return l1techbits_;}
@@ -165,7 +161,6 @@ public:
   int njet() const {return jetList_->size();}
   int nmet() const {return metList_->size();}
   int ngenparticle() const {return genParticleList_->size();}
-  //int ntrack() const {return trackList_->size();}
   int ntriggerobj() const {return triggerObjList_->size();}
   int ngenjet() const {return genJetList_->size();}
   int ngenmet() const {return genMetList_->size();}
@@ -174,6 +169,8 @@ public:
   TFile* histf() const {return histf_;}
 
   int nEvents() const {return nEvents_;}
+  int firstEvent() const {return firstEvt_;}
+  int lastEvent() const {return lastEvt_;}
   ofstream& fLog() {return fLog_;}
   ofstream& evLog() {return evLog_;}
 
@@ -195,19 +192,8 @@ public:
   const std::map<std::string, double>& jetCutMap() const {return jetCutMap_;}
   const std::map<std::string, double>& evselCutMap() const {return evselCutMap_;}
   const std::map<std::string, int>& eventIdMap() const {return eventIdMap_;}
-
-  bool useTCHE() const {return useTCHE_;}
-
   int bunchCrossing() const {return bunchCrossing_;}
   
-  void showEventNumber(bool addNewline=true, std::ostream& os=std::cout) const {
-    const vhtm::Event& evt = eventList_->at(0);
-    std::cout << ">>> Event " << evt.event 
-              << " Lumis " << evt.lumis 
-              << " Run " << evt.run;
-    if (addNewline) std::cout << std::endl;
-  }
-
 public:
   double puevWt_;
   bool emt, eet, mmt;
@@ -217,7 +203,6 @@ private:
   TFile* histf_;       // The output file with histograms
 
   // The tree branches
-
   std::vector<vhtm::Event>* eventList_;
   std::vector<vhtm::Vertex>* vertexList_;
   std::vector<vhtm::GenEvent>* genEventList_;
@@ -232,7 +217,6 @@ private:
   std::vector<vhtm::GenJet>* genJetList_;
   std::vector<vhtm::GenMET>* genMetList_;
   std::vector<vhtm::TriggerObject>* triggerObjList_;
-  //std::vector<vhtm::Track>* trackList_;
 
   std::vector<int>* l1physbits_;
   std::vector<int>* l1techbits_;
@@ -265,6 +249,8 @@ private:
   std::string evFile_;
   int maxEvt_;
   int bunchCrossing_;
+  int firstEvt_;
+  int lastEvt_;
 
   std::map<std::string, double> vtxCutMap_;
   std::map<std::string, double> muonCutMap_;
@@ -275,8 +261,7 @@ private:
   std::map<std::string, double> bjetCutMap_;
   std::map<std::string, double> jetCutMap_;
   std::map<std::string, double> evselCutMap_;
-  std::map<std::string, int> eventIdMap_;
 
-  bool useTCHE_;
+  std::map<std::string, int> eventIdMap_;
 };
 #endif

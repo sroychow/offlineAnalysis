@@ -1,5 +1,5 @@
-#ifndef __PhysicsObjects_h
-#define __PhysicsObjects_h
+#ifndef __AnalysisSpace_TreeMaker_PhysicsObjects_h
+#define __AnalysisSpace_TreeMaker_PhysicsObjects_h
 
 #include <vector>
 #include <map>
@@ -24,7 +24,6 @@ namespace vhtm {
   class PackedPFCandidate: public TObject {
   public:
     PackedPFCandidate();
-    //Candidate(float pt, float eta, float phi);
     virtual ~PackedPFCandidate() {}
 
     float pt;
@@ -40,7 +39,7 @@ namespace vhtm {
     double vz;
    
     int fromPV;
-    //w.r.t PV
+    // w.r.t PV
     float dxy;
     float dz;
     float dxyError;
@@ -48,7 +47,7 @@ namespace vhtm {
 
     std::map< std::string,std::vector<double> > isolationMap;
 
-    ClassDef(PackedPFCandidate,1)
+    ClassDef(PackedPFCandidate, 1)
   };
  
   class Event: public TObject {
@@ -86,7 +85,7 @@ namespace vhtm {
     std::vector<int> bunchCrossing;
     std::vector<int> trueNInt;
 
-    ClassDef(Event,1)
+    ClassDef(Event, 1)
   };
   class GenEvent: public TObject {
   public:
@@ -97,7 +96,7 @@ namespace vhtm {
     double ptHat;
     std::vector<double> pdfWeights;
   
-    ClassDef(GenEvent,1)
+    ClassDef(GenEvent, 1)
   };
   
   class Electron: public TObject {
@@ -204,7 +203,7 @@ namespace vhtm {
     std::vector<int> motherIndices;
     std::vector<int> daughtIndices;
   
-    ClassDef(GenParticle,1)
+    ClassDef(GenParticle, 1)
   };
   class GenJet: public TObject {
   public:
@@ -219,7 +218,7 @@ namespace vhtm {
     double emf;
     double hadf;
   
-    ClassDef(GenJet,1)
+    ClassDef(GenJet, 1)
   };
   class MET: public TObject {
   public:
@@ -233,7 +232,7 @@ namespace vhtm {
     double metphiuncorr;
     double sumetuncorr;
   
-    ClassDef(MET,1)
+    ClassDef(MET, 1)
   };
   class Tau: public TObject {
   public:
@@ -246,72 +245,72 @@ namespace vhtm {
     double energy;
     int charge;
     double mass;
-  
+    
     double dxyPV;
     double dzPV;
     int vtxIndex;
     double vtxDxy;
     double vtxDz;
-
+    
     // Leading particle pT
     double leadChargedParticlePt;
     double leadNeutralParticlePt;
     double leadParticlePt;
-
+    
     std::vector<vhtm::Candidate> sigChHadList;
     std::vector<vhtm::Candidate> sigNeHadList;
     std::vector<vhtm::Candidate> sigGammaList;
     std::vector<vhtm::Candidate> isoChHadList;
     std::vector<vhtm::Candidate> isoNeHadList;
     std::vector<vhtm::Candidate> isoGammaList;
-
+    
     float ptSumChargedHadronsIsoCone;
     float ptSumNeutralHadronsIsoCone;
     float ptSumPhotonsIsoCone;
-
-     // tau id. discriminators
-     float decayModeFinding;
-     float decayModeFindingNewDMs;
-     float decayModeFindingOldDMs;
-
-     // discriminators against electrons/muons
-     float againstMuonLoose;
-     float againstMuonMedium;
-     float againstMuonTight;
-
-     float againstMuonLoose3;
-     float againstMuonTight3;
-
-     float againstElectronLoose;
-     float againstElectronMedium;
-     float againstElectronTight;
-     //float againstElectronMVA;
-  
-     float againstElectronLooseMVA5;
-     float againstElectronMediumMVA5;
-     float againstElectronTightMVA5;
-
-     float byLooseCombinedIsolationDeltaBetaCorr3Hits;
-     float byMediumCombinedIsolationDeltaBetaCorr3Hits;
-     float byTightCombinedIsolationDeltaBetaCorr3Hits;
-     float byCombinedIsolationDeltaBetaCorrRaw3Hits;
-     float chargedIsoPtSum;
-     float neutralIsoPtSum;
-     float puCorrPtSum;
-
-     // kinematic variables for PFJet associated to PFTau
+    
+    // tau id. discriminators
+    float decayModeFinding;
+    float decayModeFindingNewDMs;
+    float decayModeFindingOldDMs;
+    
+    // discriminators against electrons/muons
+    float againstMuonLoose;
+    float againstMuonMedium;
+    float againstMuonTight;
+    
+    float againstMuonLoose3;
+    float againstMuonTight3;
+    
+    float againstElectronLoose;
+    float againstElectronMedium;
+    float againstElectronTight;
+    //float againstElectronMVA;
+    
+    float againstElectronLooseMVA5;
+    float againstElectronMediumMVA5;
+    float againstElectronTightMVA5;
+    
+    float byLooseCombinedIsolationDeltaBetaCorr3Hits;
+    float byMediumCombinedIsolationDeltaBetaCorr3Hits;
+    float byTightCombinedIsolationDeltaBetaCorr3Hits;
+    float byCombinedIsolationDeltaBetaCorrRaw3Hits;
+    float chargedIsoPtSum;
+    float neutralIsoPtSum;
+    float puCorrPtSum;
+    
+    // kinematic variables for PFJet associated to PFTau
     double jetPt;
     double jetEta;
     double jetPhi;
-     float emFraction;
+    float emFraction;
     double vx;
     double vy;
     double vz;
-  
+    
     double zvertex;
     double dxySig;
-       int selbit;
-  
+    int selbit;
+    
     ClassDef(Tau, 1)
   };
   class Muon: public TObject {
@@ -394,8 +393,8 @@ namespace vhtm {
 
     int selbit;
     std::map< std::string,std::vector<double> > isolationMap;
+
     ClassDef(Muon, 1)
-//    ClassDef(Muon, 2)
   };
   class Jet: public TObject {
   public:
@@ -461,12 +460,10 @@ namespace vhtm {
     double rho;
     double chi2;
     double ndf;
-    int ntracks;
-    int ntracksw05;
+
     bool isfake;
     bool isvalid;
-    double sumPt; // vector sum
-  
+
     int selbit;
 
     ClassDef(Vertex, 1)

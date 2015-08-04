@@ -3,8 +3,6 @@
 
 #define NEL(x) (sizeof((x))/sizeof((x)[0]))
 
-#include "configana.h"
-
 #include <fstream>
 #include <string>
 #include <vector>
@@ -16,7 +14,6 @@
 #include "TProfile.h"
 
 #include "PhysicsObjects.h"
-#include "AnaBase.h"
 #include "PhysicsObjSelector.h"
 #include "ZCandidate.h"
 
@@ -45,13 +42,16 @@ public:
 
   void ZZselector();
   void finalZZSelector(int run, int lumi, int event);
-
-  //int findEventCategory(ZCandidate Z1,ZCandidate Z2);
-  int findNExtralepton(const ZCandidate& Z1,const ZCandidate& Z2);
+  int findExtraLeptons(const ZCandidate& Z1, const ZCandidate& Z2);
+  int findEventCategory(int nleptons, const std::vector<vhtm::Jet>& jetList, int nbjets,
+			const ZCandidate& Z1Cand, const ZCandidate& Z2Cand, bool verbose=true);
   // Functions for gen Level
   int getGenDauPgd(const vhtm::GenParticle& gp);
   double getHmassfromZdau(const vhtm::GenParticle& Z1, const vhtm::GenParticle& Z2);
   bool genOk();
+  static bool hasJetPair(const std::vector<vhtm::Jet>& jetList);
+  static void ZZkbg(const ZCandidate& Z1, const ZCandidate& Z2, const TLorentzVector& jet1P4, const TLorentzVector& jet2P4,
+		    int nJets, std::map<std::string, double>& kd);
 
 public:
   std::vector<vhtm::Vertex> vtxList_;
@@ -59,11 +59,13 @@ public:
 
   std::vector<ZCandidate> ZCandList_;
   std::vector<vhtm::GenParticle> genZList_;
+  bool checkGen_;
   bool dumpGenInfo_;
   bool useEventList_;
   bool selectEvType_;
   int evtype_;
-  double fGridRhoFastjetAll_;
   ofstream syncDumpf_;
+  bool doKDcalc_;
+  std::string dumpFilename_;
 };
 #endif

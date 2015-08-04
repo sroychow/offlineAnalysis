@@ -5,7 +5,7 @@
 #include "TROOT.h"
 #include "TStopwatch.h"
 
-#include "EventSelection.h"
+#include "CRSelection.h"
 
 using std::cout;
 using std::cerr;
@@ -21,13 +21,13 @@ int main(int argc, char* argv[]) {
   string jobFile(argv[1]);
 
   // Create  analysis object 
-  EventSelection myeff;
+  CRSelection ana;
 
   // Read job input
   int nFiles = 0;
-  bool succeed = myeff.readJob(jobFile, nFiles);
+  bool succeed = ana.readJob(jobFile, nFiles);
   if (!succeed) exit(1);
-  if (myeff.getEntries() <= 0) {
+  if (ana.getEntries() <= 0) {
     cerr << "No events present in the input chain, exiting ...!" << endl;
     exit(2);
   }
@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
   TStopwatch timer;
   cout << "Start event loop now with " << nFiles << " file(s)" << endl;
   timer.Start();
-  myeff.eventLoop();
+  ana.eventLoop();
   timer.Stop();
   cout << "Realtime/CpuTime = " << timer.RealTime() << "/" << timer.CpuTime() << endl;
   

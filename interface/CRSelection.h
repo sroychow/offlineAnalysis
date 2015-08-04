@@ -67,7 +67,6 @@ public:
   bool useEventList_;
   bool selectEvType_;
   int evtype_;
-  double fGridRhoFastjetAll_;
   ofstream syncDumpf_;
 };
 #endif

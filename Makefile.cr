@@ -1,5 +1,5 @@
 UNAME  = $(shell uname)
-EXE    = evtslctn
+EXE    = crsel
  
 VPATH  = .:./interface
 vpath %.h ./interface
@@ -9,16 +9,16 @@ HSUF   = h
 DICTC  = Dict.$(CSUF)
 DICTH  = $(patsubst %.$(CSUF),%.h,$(DICTC))
 
-SRCS   = src/PhysicsObjects.cc src/AnaUtil.cc src/HZZ4lUtil.cc src/AnaBase.cc src/PhysicsObjSelector.cc src/EventSelection.cc src/evntSelection.cc
+SRCS   = src/PhysicsObjects.cc src/AnaUtil.cc src/HZZ4lUtil.cc src/AnaBase.cc src/PhysicsObjSelector.cc src/CRSelection.cc src/crSelection.cc
 OBJS   = $(patsubst %.$(CSUF), %.o, $(SRCS))
 
 LDFLAGS  = -g
 SOFLAGS  = -shared 
-CXXFLAGS = -I./interface -I$(CMSSW_BASE)/src/ZZMatrixElement/MEMCalculators/interface/ -I./
+CXXFLAGS = -I./interface -I./
 
 CXX       = g++
 CXXFLAGS += -g -Wall -Wno-deprecated
-LIBS =  -L$(CMSSW_BASE)/lib/$(SCRAM_ARCH) -lZZMatrixElementMEMCalculators
+LIBS = 
 HDRS_DICT = interface/PhysicsObjects.h interface/LinkDef.h
 
 bin: $(EXE) 
@@ -39,7 +39,7 @@ $(DICTC): $(HDRS_DICT)
  
 # Create object files
 %.o : %.$(CSUF)
-	$(CXX) $(CXXFLAGS) -fPIC -std=c++11 `root-config --cflags` -o $@ -c $<
+	$(CXX) $(CXXFLAGS) -std=c++11 `root-config --cflags` -o $@ -c $<
 
 # makedepend
 depend: $(SRCS:.$(CSUF)=.$(CSUF).dep)

@@ -12,6 +12,7 @@
 #include <sstream>
 #include <utility> 
 #include <typeinfo>
+
 #include "TROOT.h"
 #include "TSystem.h"
 #include "TChain.h"
@@ -23,11 +24,15 @@
 #include "TH1K.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TH3.h"
 #include "TProfile.h"
 
-#include "EventSelection.h"
 #include "AnaUtil.h"
-#include "PhysicsObjects.h"
+#include "HZZ4lUtil.h"
+#include "EventSelection.h"
+
+#include "MEMCalculators.h"
+using namespace MEMNames;
 
 using std::cout;
 using std::cerr;
@@ -47,18 +52,21 @@ using namespace vhtm;
 // -----------
 EventSelection::EventSelection()
   : PhysicsObjSelector(),
+    checkGen_(true),
     dumpGenInfo_(false),
     useEventList_(false),
     selectEvType_(false),
-    evtype_(-1)
+    evtype_(-1),
+    doKDcalc_(false),
+    dumpFilename_("syncDumpFile.txt")
 {
-  syncDumpf_.open("syncDumpFile.txt");
 }
 // ----------
 // Destructor
 // ----------
 EventSelection::~EventSelection() 
-{}
+{
+}
 // -------------------------------------------------------
 // Prepare for the run, do necessary initialisation etc.
 // -------------------------------------------------------
@@ -87,6 +95,7 @@ void EventSelection::bookHistograms()
   new TH1D("nGoodmuon", "Number of Good muons(with selection cuts) per event", 20, 0, 20);
   new TH1D("nGoodelectron", "Number of Good electrons(with selection cuts) per event", 20, 0, 20);
   new TH1D("nextraLepton", "Number of extra tight leptons passing isolation in selected events(apart from 4l)", 20, 0, 20);
+
   // Z and Hplots
   new TH1D("nZcand", "Number of selected Zcandidates per event", 20, 0, 20);
   new TH1D("nZZcand", "Number of selected ZZ candidates per event", 20, 0, 20);
@@ -98,6 +107,10 @@ void EventSelection::bookHistograms()
   new TH1D("evtCutFlow", "Event CutFlow", 10, -0.5, 9.5);
   new TH1D("zzSelCutFlow", "ZZ Selection CutFlow", 7, -0.5, 6.5);
   
+  new TH1F("nEvntflavReco", "Flavour of ZZ decay at reco", 4, -0.5, 3.5);
+  new TH1F("evntcatReco", "Event Category", 6, -0.5, 5.5);
+  new TH1D("djet", "VBF disriminant", 100, 0, 5);
+
   new TH1D("dRlepZal1Zal2", "dRlepZal1Zal2", 100, 0, 5);
   new TH1D("dRlepZbl1Zbl2", "dRlepZbl1Zbl2", 100, 0, 5);
   new TH1D("dRlepZal1Zbl1", "dRlepZal1Zbl1", 100, 0, 5);
@@ -155,7 +168,10 @@ void EventSelection::eventLoop()
   // Start the event loop
   // --------------------
   string lastFile;
-  for (int ev = 0; ev < nEvents(); ++ev) {
+  int fevt = (firstEvent() > -1) ? firstEvent() : 0;
+  int levt = (lastEvent() > -1) ? lastEvent() : nEvents();
+  cout << ">>> Event range: [" << fevt << ", " << levt -1 << "]" << endl;
+  for (int ev = fevt; ev < levt; ++ev) {
     clearEvent(); // reset tree variables
     clearLists();
     int lflag = chain()->LoadTree(ev);
@@ -188,13 +204,13 @@ void EventSelection::eventLoop()
     lastFile = currentFile;
     
     // Show the status
-    if (ev%nPrint == 0)
+    if (ev%nPrint == 0 || firstEvent() > -1)
       cout << "Tree# " << setw(4) << chain()->GetTreeNumber()
 	   << " ==> " << chain()->GetCurrentFile()->GetName()
 	   << " <<< Run# " << run
 	   << " Lumis# " << lumis
 	   << " Event# " << setw(8) << event << " >>> "
-	   << " Events proc. " << setw(8) << ev
+	   << " Events proc. " << setw(8) << ((firstEvent() > -1) ? ev - firstEvent() : ev)
 	   << endl;
     
     if (useEventList_ && eventIdMap().size()) {
@@ -212,19 +228,19 @@ void EventSelection::eventLoop()
     op.verbose = (logOption() >> 1 & 0x1);
     findVtxInfo(vtxList_, op, fLog());
     double ngoodVtx = vtxList_.size();
-    fGridRhoFastjetAll_ = evt.fGridRhoFastjetAll;
     if (AnaUtil::cutValue(evselCutMap(), "Isbkg")) { 
     }
     else {
-      bool genPass = genOk();
-      if (!genPass) {
-	if (dumpGenInfo_) {
-	  showEventNumber();
-	  dumpGenInfo();
-        }
-        continue;
+      if (checkGen_) {
+	bool genPass = genOk();
+	if (!genPass) {
+	  if (dumpGenInfo_) {
+	    showEventNumber();
+	    dumpGenInfo();
+	  }
+	  continue;
+	}
       }
-
       // crucial
       histf()->cd();
       histf()->cd("EventSelection");
@@ -241,25 +257,22 @@ void EventSelection::eventLoop()
       AnaUtil::fillHist1D("evtCutFlow", 3, puevWt_);
 
       // main analysis object selection
-      findObjects(fGridRhoFastjetAll_,puevWt_);
+      findObjects(puevWt_);
 
-      
       // access selected objects 
       const auto& elePhotonPairVec = getTightElePhotonPairList();
       const auto& muPhotonPairVec  = getTightMuPhotonPairList();
 
-
-      
       histf()->cd();
       histf()->cd("EventSelection");
-      
       AnaUtil::fillHist1D("nGoodmuon", muPhotonPairVec.size(), puevWt_);
       AnaUtil::fillHist1D("nGoodelectron", elePhotonPairVec.size(), puevWt_);
-      
+
       // one can select a particular chanel (4mu,4e,2e2mu)
       if (selectEvType_ && evtype_ != static_cast<int>(AnaUtil::cutValue(evselCutMap(), "evType"))) continue;
       AnaUtil::fillHist1D("evtCutFlow", 4, puevWt_);
       
+#if 0
       if (evtype_ == EventType::eemm) {
 	if (elePhotonPairVec.size() >= 2 && muPhotonPairVec.size() >= 2) {
 	  AnaUtil::fillHist1D("evtCutFlow", 5, puevWt_);
@@ -283,6 +296,17 @@ void EventSelection::eventLoop()
 	cerr << "eventLoop: Wrong evtype: " << evtype_ << endl;
         continue;
       }
+#endif
+      if ( (elePhotonPairVec.size() >= 2 && muPhotonPairVec.size() >= 2) ||
+           elePhotonPairVec.size() >= 4 ||
+           muPhotonPairVec.size() >= 4 )
+	AnaUtil::fillHist1D("evtCutFlow", 5, puevWt_);
+
+      if (elePhotonPairVec.size() >= 2 )
+	ZSelector<vhtm::Electron>(elePhotonPairVec, ZCandList_);
+      if (muPhotonPairVec.size() >= 2 ) 
+	ZSelector<vhtm::Muon>(muPhotonPairVec, ZCandList_);
+
       AnaUtil::fillHist1D("nZcand", ZCandList_.size(), puevWt_);
       // At least one Z candidate found 
       if (ZCandList_.size() >= 1) {
@@ -319,27 +343,27 @@ template <typename T>
 void EventSelection::ZSelector(const vector<pair<T, vector<vhtm::PackedPFCandidate> > >& lepPhotonPairVec, std::vector<ZCandidate>& candList) {
   for (unsigned int i = 0; i < lepPhotonPairVec.size(); ++i) {
     const auto& ip = lepPhotonPairVec[i];
-    const TLorentzVector& lep1P4 = PhysicsObjSelector::getP4(ip.first);
+    const TLorentzVector& lep1P4 = HZZ4lUtil::getP4(ip.first);
     for (unsigned int j = i+1; j < lepPhotonPairVec.size(); ++j) {
       const auto& jp = lepPhotonPairVec[j];
 
       // opposite charge
       if (ip.first.charge + jp.first.charge != 0) continue; 
-      const TLorentzVector& lep2P4 = PhysicsObjSelector::getP4(jp.first);
+      const TLorentzVector& lep2P4 = HZZ4lUtil::getP4(jp.first);
       
       // Select FSR photon(s) for lepton[i]
       // both the leptons are needed to form Z mass
       vector<vhtm::PackedPFCandidate> lep1PhoList;
       if (!ip.second.empty())
-	PhysicsObjSelector::selectFSRPhoforLepton(lep1P4, lep2P4, ip.second, lep1PhoList);
+	HZZ4lUtil::selectFSRPhoforLepton(lep1P4, lep2P4, ip.second, lep1PhoList);
       
       // Select FSR photon(s) for lepton[j]
       vector<vhtm::PackedPFCandidate> lep2PhoList;
       if (!jp.second.empty())
-	PhysicsObjSelector::selectFSRPhoforLepton(lep2P4, lep1P4, jp.second, lep2PhoList);
+	HZZ4lUtil::selectFSRPhoforLepton(lep2P4, lep1P4, jp.second, lep2PhoList);
       
-      int l1phoidx = (!lep1PhoList.empty()) ? PhysicsObjSelector::selectBestFSRforLepton(lep1P4, lep1PhoList) : -1;
-      int l2phoidx = (!lep2PhoList.empty()) ? PhysicsObjSelector::selectBestFSRforLepton(lep2P4, lep2PhoList) : -1;
+      int l1phoidx = (!lep1PhoList.empty()) ? HZZ4lUtil::selectBestFSRforLepton(lep1P4, lep1PhoList) : -1;
+      int l2phoidx = (!lep2PhoList.empty()) ? HZZ4lUtil::selectBestFSRforLepton(lep2P4, lep2PhoList) : -1;
 
       // Now choose the correct FSR Photon for this ll pair
       TLorentzVector phoP4;    // LorentzVector of the finally selected FSR
@@ -348,11 +372,11 @@ void EventSelection::ZSelector(const vector<pair<T, vector<vhtm::PackedPFCandida
         phoP4.SetPtEtaPhiE(0., 0., 0., 0);  
       }
       else if (l1phoidx > -1 && l2phoidx == -1) {
-	phoP4 = PhysicsObjSelector::getP4(lep1PhoList[l1phoidx]);
+	phoP4 = HZZ4lUtil::getP4(lep1PhoList[l1phoidx]);
         withLep = 1;
       }
       else if (l1phoidx == -1 && l2phoidx > -1) {
-	phoP4 = PhysicsObjSelector::getP4(lep2PhoList[l2phoidx]);
+	phoP4 = HZZ4lUtil::getP4(lep2PhoList[l2phoidx]);
         withLep = 2;
       }
       else {
@@ -360,17 +384,17 @@ void EventSelection::ZSelector(const vector<pair<T, vector<vhtm::PackedPFCandida
 	const vhtm::PackedPFCandidate& lep2Photon = lep2PhoList[l2phoidx];
         if (lep1Photon.pt > 4. || lep2Photon.pt > 4.) {
           if (lep1Photon.pt > lep2Photon.pt) {
-            phoP4 = PhysicsObjSelector::getP4(lep1Photon);
+            phoP4 = HZZ4lUtil::getP4(lep1Photon);
             withLep = 1;
           }
           else {
-            phoP4 = PhysicsObjSelector::getP4(lep2Photon);
+            phoP4 = HZZ4lUtil::getP4(lep2Photon);
             withLep = 2;
           }
 	}
 	else {
-	  const TLorentzVector& l1PhoP4 = PhysicsObjSelector::getP4(lep1Photon);
-	  const TLorentzVector& l2PhoP4 = PhysicsObjSelector::getP4(lep2Photon);
+	  const TLorentzVector& l1PhoP4 = HZZ4lUtil::getP4(lep1Photon);
+	  const TLorentzVector& l2PhoP4 = HZZ4lUtil::getP4(lep2Photon);
 	  bool dRcond = l1PhoP4.DeltaR(lep1P4) < l2PhoP4.DeltaR(lep2P4);
           if (dRcond) {
             phoP4 = l1PhoP4;
@@ -384,9 +408,9 @@ void EventSelection::ZSelector(const vector<pair<T, vector<vhtm::PackedPFCandida
       }
       ZCandidate ztmp;
       if (typeid(jp.first) == typeid(vhtm::Muon))
-        ztmp.flavour = PhysicsObjSelector::ZType::mumu;
+        ztmp.flavour = HZZ4lUtil::ZType::mumu;
       else if (typeid(jp.first) == typeid(vhtm::Electron))
-        ztmp.flavour = PhysicsObjSelector::ZType::ee;
+        ztmp.flavour = HZZ4lUtil::ZType::ee;
       else 
 	ztmp.flavour = -1;
 
@@ -402,7 +426,7 @@ void EventSelection::ZSelector(const vector<pair<T, vector<vhtm::PackedPFCandida
       ztmp.fsrPhoP4 = phoP4;
       double Zmass = (lep1P4 + lep2P4 + phoP4).M();
       ztmp.mass = Zmass;
-      ztmp.massDiff = std::fabs(Zmass - PhysicsObjSelector::MZnominal);
+      ztmp.massDiff = std::fabs(Zmass - HZZ4lUtil::MZnominal);
 
       candList.push_back(ztmp);
     }
@@ -484,23 +508,23 @@ void EventSelection::ZZselector() {
     // FSR for Za and Zb leptons with the same FSR-attaching requirements (see above). This means that essentially the same FSR 
     // recovery criteria used for ZZ are applied to Za and Zb, but starting from the list of photons already attached to the ZZ 
     // candidate, and without recomputing isolation. 
-    if (PhysicsObjSelector::sameFlavourZPair(Z1Cand, Z2Cand)) {
+    if (HZZ4lUtil::sameFlavourZPair(Z1Cand, Z2Cand)) {
       TLorentzVector altZ1P4, altZ2P4;
       if (Z1Cand.l1Charge + Z2Cand.l1Charge == 0) {
 	altZ1P4 = Z1Cand.l1P4 + Z2Cand.l1P4;
-	PhysicsObjSelector::addFSRtoAltZ(Z1Cand, Z2Cand, 1, 1, altZ1P4, "(lep1,lep1)"); 
+	HZZ4lUtil::addFSRtoAltZ(Z1Cand, Z2Cand, 1, 1, altZ1P4, "(lep1,lep1)"); 
 
 	altZ2P4 = Z1Cand.l2P4 + Z2Cand.l2P4;
-        PhysicsObjSelector::addFSRtoAltZ(Z1Cand, Z2Cand, 2, 2, altZ2P4, "(lep2,lep2)"); 
+        HZZ4lUtil::addFSRtoAltZ(Z1Cand, Z2Cand, 2, 2, altZ2P4, "(lep2,lep2)"); 
       }
       else {
 	altZ1P4 = Z1Cand.l1P4 + Z2Cand.l2P4;
-	PhysicsObjSelector::addFSRtoAltZ(Z1Cand, Z2Cand, 1, 2, altZ1P4, "(lep1,lep2)"); 
+	HZZ4lUtil::addFSRtoAltZ(Z1Cand, Z2Cand, 1, 2, altZ1P4, "(lep1,lep2)"); 
 
 	altZ2P4 = Z1Cand.l2P4 + Z2Cand.l1P4;
-	PhysicsObjSelector::addFSRtoAltZ(Z1Cand, Z2Cand, 2, 1, altZ2P4, "(lep2,lep1)"); 
+	HZZ4lUtil::addFSRtoAltZ(Z1Cand, Z2Cand, 2, 1, altZ2P4, "(lep2,lep1)"); 
       }
-      if (std::fabs(altZ2P4.M() - PhysicsObjSelector::MZnominal) < std::fabs(altZ1P4.M() - PhysicsObjSelector::MZnominal)) {
+      if (std::fabs(altZ2P4.M() - HZZ4lUtil::MZnominal) < std::fabs(altZ1P4.M() - HZZ4lUtil::MZnominal)) {
         TLorentzVector lv = altZ1P4;
         altZ1P4 = altZ2P4;
         altZ2P4 = lv;
@@ -512,7 +536,7 @@ void EventSelection::ZZselector() {
 	     << ", " << Z1Cand.mass << ", " << altZ1P4.M() 
 	     << ", " << Z2Cand.mass << ", " << altZ2P4.M() << ")"
 	     << endl;
-      if (std::fabs(altZ1P4.M() - PhysicsObjSelector::MZnominal) < Z1Cand.massDiff && altZ2P4.M() < 12) {
+      if (std::fabs(altZ1P4.M() - HZZ4lUtil::MZnominal) < Z1Cand.massDiff && altZ2P4.M() < 12) {
         if (0) cout << " -- SmartCut: skip ZZ Candidate" << endl;
 	continue;
       }
@@ -559,60 +583,265 @@ void EventSelection::finalZZSelector(int run, int lumi, int event) {
   AnaUtil::fillHist1D("massZ1", Z1Cand.mass, puevWt_);
   AnaUtil::fillHist1D("massZ2", Z2Cand.mass, puevWt_);
   AnaUtil::fillHist1D("mass4l", mass4l, puevWt_);
-  const auto& jetVec = getLeptonCleanedJetList();
-  
-  double jet1Pt,jet2Pt;
-  if( !jetVec.empty() )  {
-    jet1Pt = jetVec.at(0).pt;
-    if( jetVec.size() > 1 ) jet2Pt = jetVec.at(1).pt;
-    else                    jet2Pt = -1.;
-  } else {
-    jet1Pt = -1.; 
-    jet2Pt = -1.;
-  }        
-  int nextlep = findNExtralepton(Z1Cand,Z2Cand);
-  AnaUtil::fillHist1D("nextraLepton", nextlep, puevWt_);
-  PhysicsObjSelector::syncDumper(run, lumi, event, Z1Cand, Z2Cand, jetVec.size(),jet1Pt,jet2Pt,syncDumpf_);
-  dumpEvent();
-#if 1
-  // dump event
+
   cout << "---- New Event" << endl;
-  showEventNumber(false);
+  showEventNumber(true);
+
+  const auto& jetVec = getLeptonCleanedLooseJetList();
+  int nJets = jetVec.size();
+
+  double jet1Pt = -1.0, jet2Pt= -1.0;
+  TLorentzVector jet1P4, jet2P4;
+  jet1P4.SetPtEtaPhiE(0.,0.,0.,0.);
+  jet2P4.SetPtEtaPhiE(0.,0.,0.,0.);
+  if (jetVec.size()) {
+    jet1Pt = jetVec[0].pt;
+    jet1P4 = HZZ4lUtil::getP4(jetVec[0]);
+  }
+  if (jetVec.size() > 1) {
+    jet2Pt = jetVec[1].pt;
+    jet2P4 = HZZ4lUtil::getP4(jetVec[1]);
+  }
+
+  int nextlep = findExtraLeptons(Z1Cand, Z2Cand);
+  AnaUtil::fillHist1D("nextraLepton", nextlep, puevWt_);
+
+  int cat = findEventCategory(4+nextlep, jetVec, getNbJets(), Z1Cand, Z2Cand); 
+  AnaUtil::fillHist1D("evntcatReco", cat, puevWt_);
+
+  // synchronization exercise dump
+
+  if (doKDcalc_) {
+    std::map<std::string, double> kd; 
+    ZZkbg(Z1Cand, Z2Cand, jet1P4, jet2P4, nJets, kd);
+    HZZ4lUtil::syncDumper(run, lumi, event, Z1Cand, Z2Cand, nJets, jet1Pt, jet2Pt, kd, cat, syncDumpf_);
+  }
+  else
+    HZZ4lUtil::syncDumper(run, lumi, event, Z1Cand, Z2Cand, nJets, jet1Pt, jet2Pt, cat, syncDumpf_);
+
+  // Event Flavour
+  if (Z1Cand.flavour == HZZ4lUtil::ZType::mumu && Z2Cand.flavour == HZZ4lUtil::ZType::mumu)
+    AnaUtil::fillHist1D("nEvntflavReco", 0, puevWt_);
+  else if (Z1Cand.flavour == HZZ4lUtil::ZType::ee && Z2Cand.flavour == HZZ4lUtil::ZType::ee)
+    AnaUtil::fillHist1D("nEvntflavReco", 1, puevWt_);
+  else if ( (Z1Cand.flavour == HZZ4lUtil::ZType::mumu && Z2Cand.flavour == HZZ4lUtil::ZType::ee) || 
+	    (Z1Cand.flavour == HZZ4lUtil::ZType::ee   && Z2Cand.flavour == HZZ4lUtil::ZType::mumu) )
+    AnaUtil::fillHist1D("nEvntflavReco", 2, puevWt_);
+  else
+    AnaUtil::fillHist1D("nEvntflavReco", 3, puevWt_);
+
+  // dump event
   cout << " --- #Z Cadidates: " << ZCandList_.size() 
        << ", #ZZ Candidates(final): " << ZZPairVec_.size() 
-       << ", flavour: "  << (PhysicsObjSelector::sameFlavourZPair(Z1Cand, Z2Cand) ? "same" : "different") 
+       << ", flavour: "  << (HZZ4lUtil::sameFlavourZPair(Z1Cand, Z2Cand) ? "same" : "different") 
        << endl;
   cout << "--- mass4l: " << mass4l << " GeV" 
        << endl;
-  cout << "--- fGridRhoFastjetAll: " << fGridRhoFastjetAll_ << endl;
-  PhysicsObjSelector::printZCandidate(Z1Cand, " >> Z Candidate 1");
-  PhysicsObjSelector::printZCandidate(Z2Cand, " >> Z Candidate 2");
+  cout << "--- fGridRhoFastjetAll: " << getEventGridRho() << endl;
+  HZZ4lUtil::printZCandidate(Z1Cand, " >> Z Candidate 1");
+  HZZ4lUtil::printZCandidate(Z2Cand, " >> Z Candidate 2");
   dumpEvent();
-#endif
+}
+// Function to calculate number of extra tight leptons passing isolation apart from leptons in
+// ZZ candidate
+int EventSelection::findExtraLeptons(const ZCandidate& Z1Cand, const ZCandidate& Z2Cand) {
+  int nextlep = 0;
+  for (const auto& mu: getTightMuList()) {
+    TLorentzVector muP4 = HZZ4lUtil::getP4(mu);
+    if (muP4 == Z1Cand.l1P4 || muP4 == Z1Cand.l2P4 || muP4 == Z2Cand.l1P4 || muP4 == Z2Cand.l2P4) continue;
+    if (HZZ4lUtil::pfiso(mu)/mu.pt < 0.4) nextlep++;
+  }
+  for (const auto& ele: getTightEleList()) {
+    TLorentzVector eleP4 = HZZ4lUtil::getP4(ele);
+    if (eleP4 == Z1Cand.l1P4 || eleP4 == Z1Cand.l2P4 || eleP4 == Z2Cand.l1P4 || eleP4 == Z2Cand.l2P4) continue;
+    if (HZZ4lUtil::pfiso(ele, getEventGridRho())/ele.pt < 0.5) nextlep++;
+  }
+  return nextlep;
+}
+//
+//  exactly 4 leptons + at least 2 jets + at most 1 b-tag jet in the event +Djet>0.5
+//   VBF-tagged category (#2)
+//
+//  exactly 4 leptons + at least one pair of jets passing { |eta|<2.4, pT>40, 60<mjj<120 } + pT,4l>m4l,
+//  OR: exactly 4 leptons + exactly 2 jets, both with b-tag
+//    VH-hadronic-tagged category (#4)
+//
+//  no more than 2 jets + no b-tagged jet in the event; + at least 5 leptons
+//    VH-leptonic-tagged category (#3)
+//
+//  at least 3 jets, of which at least 1 b-tagged,
+//  OR: at least 5 leptons
+//    ttH-tagged category (#5)
+//
+//  at least 1 jet
+//    1-jet-tagged category (#1)
+//
+//  remaining events
+//    untagged category (#0) 
+//
+//  Djet = 0.18*|eta_j1 - eta_j2| + 1.92e-04 * mj1j2
+//
+int EventSelection::findEventCategory(int nleptons, const std::vector<vhtm::Jet>& jetList, int nbjets,
+                                      const ZCandidate& Z1Cand, const ZCandidate& Z2Cand, bool verbose) {
+  int njets = jetList.size();
+
+  TLorentzVector j1P4, j2P4;
+  j1P4.SetPtEtaPhiE(0.,0.,0.,0.);
+  j2P4.SetPtEtaPhiE(0.,0.,0.,0.);
+  if (njets) j1P4 = HZZ4lUtil::getP4(jetList[0]);
+  if (njets > 1) j2P4 = HZZ4lUtil::getP4(jetList[1]);
+
+  double djet = -1., mjj = 0.;
+  TLorentzVector final4lP4 = Z1Cand.l1P4 + Z1Cand.l2P4 + Z1Cand.fsrPhoP4 + Z2Cand.l1P4 + Z2Cand.l2P4 + Z2Cand.fsrPhoP4;
+  if (njets >= 2) {
+    mjj = (j1P4 + j2P4).M();
+    djet = 0.18 * std::fabs(j1P4.Eta() - j2P4.Eta()) + 1.92E-04 * mjj;
+  }
+  histf()->cd();
+  histf()->cd("EventSelection");
+  AnaUtil::fillHist1D("djet", djet, 1);
+  
+  int cat = 0;
+  if (nleptons == 4 && njets >= 2 && nbjets <= 1 && djet > 0.5) 
+    cat = 2;
+  else if ( (nleptons == 4 && 
+	     njets >= 2 && EventSelection::hasJetPair(jetList) &&
+	     final4lP4.Pt() > final4lP4.M() ) ||
+            (nleptons == 4 && njets == 2 && nbjets == 2) )
+    cat = 4;
+  else if (njets <= 2 && nbjets == 0 && nleptons >= 5)
+    cat = 3;
+  else if ( (njets >= 3 && nbjets >= 1) || nleptons >= 5 )
+    cat = 5;
+  else if (njets >= 1)
+    cat = 1;
+  
+  if (verbose) {
+    cout << "---- Event Category" << endl;
+    cout << "  nlep  njet nbjet   jet1Pt  jet1Eta   jet2Pt  jet2Eta      mjj     4lPt      4lM     djet category"
+	 << endl;
+    cout << setw(6) << nleptons
+	 << setw(6) << njets
+	 << setw(6) << nbjets
+	 << setw(9) << j1P4.Pt()
+	 << setw(9) << (j1P4.Pt() > 0 ? j1P4.Eta() : 99)
+	 << setw(9) << j2P4.Pt()
+	 << setw(9) << (j2P4.Pt() > 0 ? j2P4.Eta() : 99)
+	 << setw(9) << mjj
+	 << setw(9) << final4lP4.Pt() 
+	 << setw(9) << final4lP4.M()
+	 << setw(9) << djet
+	 << setw(9) << cat
+	 << endl << endl;
+  }
+  return cat;
+}
+bool EventSelection::hasJetPair(const std::vector<vhtm::Jet>& jetList) {
+  for (unsigned int i = 0; i < jetList.size(); ++i) {
+    auto const& j1 = jetList[i];
+    auto const& j1P4 = HZZ4lUtil::getP4(j1);
+    for (unsigned int j = i+1; j < jetList.size(); ++j) {
+      auto const& j2 = jetList[j];
+      auto const& j2P4 = HZZ4lUtil::getP4(j2);
+      double mjj = (j1P4+j2P4).M();      
+      if (0) cout << "mjj[" << i << ", " << j << "] = " << mjj << endl;
+      if ( (std::fabs(j1.eta) < 2.4 && j1.pt > 40.) && 
+	   (std::fabs(j2.eta) < 2.4 && j2.pt > 40.) && 
+	   (mjj > 60. && mjj < 120.) ) return true;
+    }
+  }
+  return false;
+}
+void EventSelection::ZZkbg(const ZCandidate& Z1Cand, const ZCandidate& Z2Cand, const TLorentzVector& jet1P4, const TLorentzVector& jet2P4,
+			   int nJets, std::map<std::string, double>& kd) {
+  int id11, id12;
+  if (Z1Cand.flavour == HZZ4lUtil::ZType::mumu) {
+    id11 = (Z1Cand.l1Charge < 0) ? 13 : -13;
+    id12 = (Z1Cand.l2Charge < 0) ? 13 : -13;
+  } 
+  else if (Z1Cand.flavour == HZZ4lUtil::ZType::ee) {
+    id11 = (Z1Cand.l1Charge < 0) ? 11 : -11;
+    id12 = (Z1Cand.l2Charge < 0) ? 11 : -11;
+  }
+  
+  int id21, id22;
+  if (Z2Cand.flavour == HZZ4lUtil::ZType::mumu) {
+    id21 = (Z2Cand.l1Charge < 0) ? 13 : -13;
+    id22 = (Z2Cand.l2Charge < 0) ? 13 : -13;
+  } 
+  else if (Z2Cand.flavour == HZZ4lUtil::ZType::ee) {
+    id21 = (Z2Cand.l1Charge < 0) ? 11 : -11;
+    id22 = (Z2Cand.l2Charge < 0) ? 11 : -11;
+  }
+  TLorentzVector pL11 = Z1Cand.l1P4;
+  TLorentzVector pL12 = Z1Cand.l2P4;
+  TLorentzVector pL21 = Z2Cand.l1P4;
+  TLorentzVector pL22 = Z2Cand.l2P4;
+  
+  std::vector<TLorentzVector> partP;
+  partP.push_back(pL11);
+  partP.push_back(pL12);
+  partP.push_back(pL21);
+  partP.push_back(pL22);
+  
+  std::vector<int> partId;
+  partId.push_back(id11);
+  partId.push_back(id12);
+  partId.push_back(id21);
+  partId.push_back(id22);
+  
+  std::vector<TLorentzVector> partPprod;
+  partPprod.push_back(pL11);
+  partPprod.push_back(pL12);
+  partPprod.push_back(pL21);
+  partPprod.push_back(pL22);
+  partPprod.push_back(jet1P4);
+  partPprod.push_back(jet2P4); // Can also use partPprod.push_back(nullFourVector) instead for integrated VBF MEs
+  //TLorentzVector nullFourVector(0, 0, 0, 0);
+  
+  std::vector<int> partIdprod; 
+  partIdprod.push_back(id11);
+  partIdprod.push_back(id12);
+  partIdprod.push_back(id21);
+  partIdprod.push_back(id22);
+  partIdprod.push_back(0); // For leptonic ZH in the future, this could actually be another lepton flavor
+  partIdprod.push_back(0); // For leptonic ZH in the future, this could actually be the opposite lepton flavor
+  
+  double p0plus_VAJHU, bkg_VAMCFM, p0plus_m4l, bkg_m4l;
+  double p0minus_VAJHU, Dgg10_VAMCFM;
+  double phjj_VAJHU, pvbf_VAJHU;
+  
+  MEMs combinedMEM(13, 125, "CTEQ6L");
+  combinedMEM.computeME(MEMNames::kSMHiggs, MEMNames::kJHUGen, partP, partId, p0plus_VAJHU); // Calculation of SM gg->H->4l JHUGen ME
+  combinedMEM.computeME(MEMNames::k0minus, MEMNames::kJHUGen, partP, partId, p0minus_VAJHU); // Calculation of PS (0-, fa3=1) gg->H->4l JHUGen ME 
+  combinedMEM.computeME(MEMNames::kggHZZ_10, MEMNames::kMCFM, partP, partId, Dgg10_VAMCFM); // Direct calc of Dgg (D^kin for off-shell) from MCFM MEs
+  combinedMEM.computeME(MEMNames::kqqZZ, MEMNames::kMCFM, partP, partId, bkg_VAMCFM); // qq->4l background calculation from MCFM
+  combinedMEM.computePm4l(partP,partId, MEMNames::kNone, p0plus_m4l, bkg_m4l); // m4l probabilities for signal and background, nominal resolution
+  combinedMEM.computeME(MEMNames::kJJ_SMHiggs_GG, MEMNames::kJHUGen, partPprod, partIdprod, phjj_VAJHU); // SM gg->H+2j
+  combinedMEM.computeME(MEMNames::kJJ_SMHiggs_VBF, MEMNames::kJHUGen, partPprod, partIdprod, pvbf_VAJHU);  // SM VBF->H
+  
+  // Dgg already obtained above
+  float D_bkg_kin = p0plus_VAJHU / ( p0plus_VAJHU + bkg_VAMCFM ); // D^kin_bkg
+  float D_bkg = p0plus_VAJHU * p0plus_m4l / ( p0plus_VAJHU * p0plus_m4l + bkg_VAMCFM * bkg_m4l ); // D^kin including superMELA
+  float D_g4 = p0plus_VAJHU / ( p0plus_VAJHU + p0minus_VAJHU ); // D_0-
+  float Djet_VAJHU = pvbf_VAJHU / ( pvbf_VAJHU + phjj_VAJHU ); // D^VBF_HJJ
+  
+  std::cout << "Computed Successfully: " << std::endl;
+  std::cout << "D_bkg_kin D_bkg D_g4 Djet_VAJHU" << std::endl;
+  std::cout << setprecision(3);
+  std::cout << setw(9) << D_bkg_kin 
+	    << setw(9) << D_bkg 
+	    << setw(9) << D_g4
+	    << setw(9) << Djet_VAJHU 
+	    << std::endl;
+  
+  kd["Dgg10_VAMCFM"] = Dgg10_VAMCFM; 
+  kd["D_bkg_kin"] = D_bkg_kin; 
+  kd["D_bkg"] = D_bkg; 
+  kd["D_g4"] = D_g4; 
+  kd["Djet_VAJHU"] = (nJets >= 2) ? Djet_VAJHU : -1.;
 }
 
-//Function to calculate number of extra tight leptons passing isolation apart from leptons in
-//ZZ candidate
-int EventSelection::findNExtralepton(const ZCandidate& Z1,const ZCandidate& Z2) {
-  int nextlep=0;
-  for( auto& mu: getTightMuList() ) {
-    TLorentzVector muVec = getP4(mu);
-    if( muVec == Z1.l1P4 || muVec == Z1.l2P4 || muVec == Z2.l1P4 || muVec == Z2.l2P4 ) 
-      continue;
-    if( ( mu.sumChargedHadronPt + std::max(0., mu.sumNeutralHadronEt + mu.sumPhotonEt - 0.5 * mu.sumPUPt))/mu.pt < 0.4 )
-      nextlep++;
-  }
-  for( auto& ele: getTightEleList() ) {
-    TLorentzVector eleVec = getP4(ele);
-    if( eleVec == Z1.l1P4 || eleVec == Z1.l2P4 || eleVec == Z2.l1P4 || eleVec == Z2.l2P4 ) 
-      continue;
-    if( ( ele.chargedHadronIso + 
-          std::max(0., ele.neutralHadronIso + ele.photonIso  -
-          getEleRhoEffectiveArea(std::fabs(ele.eta)) * fGridRhoFastjetAll_))/ele.pt < 0.5 )
-      nextlep++;
-  }
-  return nextlep; 
-}
 //---------------------
 // Gen Level Functions
 //---------------------
@@ -640,7 +869,7 @@ double EventSelection::getHmassfromZdau(const GenParticle& Z1, const GenParticle
     if (di >= ngenparticle()) continue;
     const GenParticle& dgp = genParticleColl()->at(di);
     if (std::abs(dgp.pdgId) == 23) continue;
-    lZ1 += getP4(dgp);
+    lZ1 += HZZ4lUtil::getP4(dgp);
   }
 
   const vector<int>& d2 = Z2.daughtIndices;
@@ -648,7 +877,7 @@ double EventSelection::getHmassfromZdau(const GenParticle& Z1, const GenParticle
     if (di >= ngenparticle()) continue;
     const GenParticle& dgp = genParticleColl()->at(di);
     if (std::abs(dgp.pdgId) == 23) continue;
-    lZ2 += getP4(dgp);
+    lZ2 += HZZ4lUtil::getP4(dgp);
   }
   return (lZ1+lZ2).M();
 }
@@ -661,7 +890,7 @@ bool EventSelection::genOk() {
     int status = gp.status;
     
     if (pdgid == 25) {
-      TLorentzVector l = getP4(gp);
+      TLorentzVector l = HZZ4lUtil::getP4(gp);
       AnaUtil::fillHist1D("genHmass", l.M(), puevWt_);
     }
     // if (pdgid == 23 && status==2 ) {
@@ -671,16 +900,16 @@ bool EventSelection::genOk() {
       AnaUtil::fillHist1D("genZmother", mmid, puevWt_);
       if (index < 0 || std::abs(mmid) != 25) continue; // H -> ZZ
       genZList_.push_back(gp);
-      TLorentzVector l1 = getP4(gp);
+      TLorentzVector l1 = HZZ4lUtil::getP4(gp);
       AnaUtil::fillHist1D("genZmass", l1.M(), puevWt_);
     }
   }
   if (0) cout << "#Gen Z = " << genZList_.size() << endl;
   if (genZList_.size() < 2) return genPass;
   //  std::sort(genZList_.begin(), genZList_.end(), MassComparator<vhtm::GenParticle>());
-  AnaUtil::fillHist1D("genZ1mass", getP4(genZList_[0]).M(), puevWt_); 
-  AnaUtil::fillHist1D("genZ2mass", getP4(genZList_[1]).M(), puevWt_);
-  AnaUtil::fillHist1D("genHmassfromZ", (getP4(genZList_[0])+getP4(genZList_[1])).M(), puevWt_);
+  AnaUtil::fillHist1D("genZ1mass", HZZ4lUtil::getP4(genZList_[0]).M(), puevWt_); 
+  AnaUtil::fillHist1D("genZ2mass", HZZ4lUtil::getP4(genZList_[1]).M(), puevWt_);
+  AnaUtil::fillHist1D("genHmassfromZ", (HZZ4lUtil::getP4(genZList_[0])+HZZ4lUtil::getP4(genZList_[1])).M(), puevWt_);
   
   int nZ = genZList_.size();
   int* nMu  = new int[nZ];
@@ -794,7 +1023,7 @@ void EventSelection::endJob() {
     "Candidate (mass + isolation)",
     "Candidate final cuts"
   };
-  PhysicsObjSelector::showEfficiency("evtCutFlow", evlabels, "Event Selection");  
+  HZZ4lUtil::showEfficiency("evtCutFlow", evlabels, "Event Selection");  
   string zzlabels[] = {
     "All",
     "dR(Lep1,Lep2) Overlap",
@@ -804,7 +1033,7 @@ void EventSelection::endJob() {
     "Smart Cut",
     "Z Mass"
   };
-  PhysicsObjSelector::showEfficiency("zzSelCutFlow", zzlabels, "ZZ Selection");  
+  HZZ4lUtil::showEfficiency("zzSelCutFlow", zzlabels, "ZZ Selection");  
   
   histf()->cd();
   histf()->Write();
@@ -849,14 +1078,26 @@ bool EventSelection::readJob(const string& jobFile, int& nFiles)
     string key = tokens[0];
     string value = tokens[1];
     if (key == "useEventList")
-      useEventList_ = (atoi(value.c_str()) > 0) ? true : false;
+      useEventList_ = (stoi(value.c_str()) > 0) ? true : false;
     else if (key == "dumpGenInfo")
-      dumpGenInfo_ = (atoi(value.c_str()) > 0) ? true : false;
+      dumpGenInfo_ = (stoi(value.c_str()) > 0) ? true : false;
+    else if (key == "checkGenInfo")
+      checkGen_ = (stoi(value.c_str()) > 0) ? true : false;
+    else if (key == "doKD")
+      doKDcalc_ = (stoi(value.c_str()) > 0) ? true : false;
+    else if (key == "syncDumpFile")
+      dumpFilename_ = value.c_str();
 
     tokens.clear();
   }
   // Close the file
   fin.close();
+
+  syncDumpf_.open(dumpFilename_, ios::out);
+  if (!syncDumpf_) {
+    cerr << "Output File: " << dumpFilename_ << " could not be opened!" << endl;
+    return false;
+  }
 
   selectEvType_ = (static_cast<int>(AnaUtil::cutValue(evselCutMap(), "selectEvType")) > 0) ? true : false;
   printJob();

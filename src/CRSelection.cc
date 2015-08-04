@@ -23,11 +23,13 @@
 #include "TH1K.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TH3.h"
 #include "TProfile.h"
 
-#include "CRSelection.h"
 #include "AnaUtil.h"
+#include "HZZ4lUtil.h"
 #include "PhysicsObjects.h"
+#include "CRSelection.h"
 
 using std::cout;
 using std::cerr;
@@ -39,6 +41,7 @@ using std::map;
 using std::pair;
 using std::setprecision;
 using std::setw;
+using std::stoi;
 
 using namespace vhtm;
 
@@ -204,7 +207,6 @@ void CRSelection::eventLoop()
     op.verbose = (logOption() >> 1 & 0x1);
     findVtxInfo(vtxList_, op, fLog());
     double ngoodVtx = vtxList_.size();
-    fGridRhoFastjetAll_ = evt.fGridRhoFastjetAll;
 
     // crucial
     histf()->cd();
@@ -294,7 +296,7 @@ void CRSelection::leptonPairSelector(const std::vector<std::pair<T, std::vector<
 				     std::vector<std::pair<ZCandidate, ZCandidate> >& objPairList) {
   for (unsigned int i = 0; i < lepPhotonPairVec.size(); ++i) {
     const auto& ip = lepPhotonPairVec[i];
-    const TLorentzVector& lep1P4 = PhysicsObjSelector::getP4(ip.first);
+    const TLorentzVector& lep1P4 = HZZ4lUtil::getP4(ip.first);
     if (lep1P4 == Z.l1P4 || lep1P4 == Z.l2P4) continue;  // Keep aside the lepton that forms the real Z
 
     for (unsigned int j = i+1; j < lepPhotonPairVec.size(); ++j) {
@@ -306,20 +308,20 @@ void CRSelection::leptonPairSelector(const std::vector<std::pair<T, std::vector<
       else {
 	if (ip.first.charge != jp.first.charge) continue;     // same charge
       }
-      const TLorentzVector& lep2P4 = PhysicsObjSelector::getP4(jp.first);
+      const TLorentzVector& lep2P4 = HZZ4lUtil::getP4(jp.first);
       if (lep2P4 == Z.l1P4 || lep2P4 == Z.l2P4) continue;     // Keep aside the lepton that forms the real Z
 
       // Select FSR photon(s) for lepton[i]
       // both the leptons are needed to form Z mass
       vector<vhtm::PackedPFCandidate> lep1PhoList;
-      if (!ip.second.empty()) PhysicsObjSelector::selectFSRPhoforLepton(lep1P4, lep2P4, ip.second, lep1PhoList);
+      if (!ip.second.empty()) HZZ4lUtil::selectFSRPhoforLepton(lep1P4, lep2P4, ip.second, lep1PhoList);
       
       // Select FSR photon(s) for lepton[j]
       vector<vhtm::PackedPFCandidate> lep2PhoList;
-      if (!jp.second.empty()) PhysicsObjSelector::selectFSRPhoforLepton(lep2P4, lep1P4, jp.second, lep2PhoList);
+      if (!jp.second.empty()) HZZ4lUtil::selectFSRPhoforLepton(lep2P4, lep1P4, jp.second, lep2PhoList);
       
-      int l1phoidx = (!lep1PhoList.empty()) ? PhysicsObjSelector::selectBestFSRforLepton(lep1P4, lep1PhoList) : -1;
-      int l2phoidx = (!lep2PhoList.empty()) ? PhysicsObjSelector::selectBestFSRforLepton(lep2P4, lep2PhoList) : -1;
+      int l1phoidx = (!lep1PhoList.empty()) ? HZZ4lUtil::selectBestFSRforLepton(lep1P4, lep1PhoList) : -1;
+      int l2phoidx = (!lep2PhoList.empty()) ? HZZ4lUtil::selectBestFSRforLepton(lep2P4, lep2PhoList) : -1;
 
       // Now choose the correct FSR Photon for this ll pair
       TLorentzVector phoP4;    // LorentzVector of the finally selected FSR
@@ -328,11 +330,11 @@ void CRSelection::leptonPairSelector(const std::vector<std::pair<T, std::vector<
         phoP4.SetPtEtaPhiE(0., 0., 0., 0);  
       }
       else if (l1phoidx > -1 && l2phoidx == -1) {
-	phoP4 = PhysicsObjSelector::getP4(lep1PhoList[l1phoidx]);
+	phoP4 = HZZ4lUtil::getP4(lep1PhoList[l1phoidx]);
         withLep = 1;
       }
       else if (l1phoidx == -1 && l2phoidx > -1) {
-	phoP4 = PhysicsObjSelector::getP4(lep2PhoList[l2phoidx]);
+	phoP4 = HZZ4lUtil::getP4(lep2PhoList[l2phoidx]);
         withLep = 2;
       }
       else {
@@ -340,17 +342,17 @@ void CRSelection::leptonPairSelector(const std::vector<std::pair<T, std::vector<
 	const vhtm::PackedPFCandidate& lep2Photon = lep2PhoList[l2phoidx];
         if (lep1Photon.pt > 4. || lep2Photon.pt > 4.) {
           if (lep1Photon.pt > lep2Photon.pt) {
-            phoP4 = PhysicsObjSelector::getP4(lep1Photon);
+            phoP4 = HZZ4lUtil::getP4(lep1Photon);
             withLep = 1;
           }
           else {
-            phoP4 = PhysicsObjSelector::getP4(lep2Photon);
+            phoP4 = HZZ4lUtil::getP4(lep2Photon);
             withLep = 2;
           }
 	}
 	else {
-	  const TLorentzVector& l1PhoP4 = PhysicsObjSelector::getP4(lep1Photon);
-	  const TLorentzVector& l2PhoP4 = PhysicsObjSelector::getP4(lep2Photon);
+	  const TLorentzVector& l1PhoP4 = HZZ4lUtil::getP4(lep1Photon);
+	  const TLorentzVector& l2PhoP4 = HZZ4lUtil::getP4(lep2Photon);
 	  bool dRcond = l1PhoP4.DeltaR(lep1P4) < l2PhoP4.DeltaR(lep2P4);
           if (dRcond) {
             phoP4 = l1PhoP4;
@@ -364,9 +366,9 @@ void CRSelection::leptonPairSelector(const std::vector<std::pair<T, std::vector<
       }
       ZCandidate ztmp;
       if (typeid(jp.first) == typeid(vhtm::Muon))
-        ztmp.flavour = PhysicsObjSelector::ZType::mumu;
+        ztmp.flavour = HZZ4lUtil::ZType::mumu;
       else if (typeid(jp.first) == typeid(vhtm::Electron))
-        ztmp.flavour = PhysicsObjSelector::ZType::ee;
+        ztmp.flavour = HZZ4lUtil::ZType::ee;
       else 
 	ztmp.flavour = -1;
       
@@ -382,7 +384,7 @@ void CRSelection::leptonPairSelector(const std::vector<std::pair<T, std::vector<
       ztmp.fsrPhoP4 = phoP4;
       double Zmass = (lep1P4 + lep2P4 + phoP4).M();
       ztmp.mass = Zmass;
-      ztmp.massDiff = std::fabs(Zmass - PhysicsObjSelector::MZnominal);
+      ztmp.massDiff = std::fabs(Zmass - HZZ4lUtil::MZnominal);
       
       candList.push_back(ztmp);
       objPairList.push_back({Z, ztmp});
@@ -419,26 +421,20 @@ void CRSelection::finalZllSelector(std::vector<std::pair<ZCandidate, ZCandidate>
     cout << " --- #Z Candidates: " << ZCandList_.size() 
 	 << ", #Zll Candidates): " << objPairList.size() 
 	 << ", #Zll Candidates(final): " << evtHasCR 
-	 << ", flavour: "  << (PhysicsObjSelector::sameFlavourZPair(evZ, evll) ? "same" : "different") 
+	 << ", flavour: "  << (HZZ4lUtil::sameFlavourZPair(evZ, evll) ? "same" : "different") 
 	 << endl;
     cout << "--- mass4l: " << mass4l << " GeV" 
 	 << endl;
-    cout << "--- fGridRhoFastjetAll: " << fGridRhoFastjetAll_ << endl;
-    PhysicsObjSelector::printZCandidate(evZ, " >> Z Candidate");
-    PhysicsObjSelector::printZCandidate(evll, " >> ll Candidate");
+    cout << "--- fGridRhoFastjetAll: " << getEventGridRho() << endl;
+    HZZ4lUtil::printZCandidate(evZ, " >> Z Candidate");
+    HZZ4lUtil::printZCandidate(evll, " >> ll Candidate");
     dumpEvent();
-        
-    const auto& jetVec = getLeptonCleanedJetList();
-    double jet1Pt,jet2Pt;
-    if( !jetVec.empty() )  {
-      jet1Pt = jetVec.at(0).pt;
-      if( jetVec.size() > 1 ) jet2Pt = jetVec.at(1).pt;
-      else                    jet2Pt = -1.;
-    } else {
-      jet1Pt = -1.; 
-      jet2Pt = -1.;
-    }        
-    PhysicsObjSelector::syncDumper(run, lumi, event, evZ, evll,jetVec.size(),jet1Pt,jet2Pt,syncDumpf_);
+    
+    const auto& jetVec = getLeptonCleanedLooseJetList();
+    double jet1Pt = -1.0, jet2Pt = -1.0;
+    if (jetVec.size()) jet1Pt = jetVec.at(0).pt;
+    if (jetVec.size() > 1) jet2Pt = jetVec.at(1).pt;
+    HZZ4lUtil::syncDumper(run, lumi, event, evZ, evll, jetVec.size(), jet1Pt, jet2Pt, syncDumpf_);
   }
 }
 bool CRSelection::CRSelectorZSSll(ZCandidate& Z, ZCandidate& ssll, bool verbose) {
@@ -452,9 +448,9 @@ bool CRSelection::CRSelectorZSSll(ZCandidate& Z, ZCandidate& ssll, bool verbose)
   
   // First Z Candidate
   bool ZlepIso = false; 
-  if (Z.flavour == PhysicsObjSelector::ZType::mumu)
+  if (Z.flavour == HZZ4lUtil::ZType::mumu)
     ZlepIso = ZmumuIso(Z, fsrVec);
-  else if (Z.flavour == PhysicsObjSelector::ZType::ee)
+  else if (Z.flavour == HZZ4lUtil::ZType::ee)
     ZlepIso = ZeeIso(Z, fsrVec);
   
   if (!ZlepIso) return false;
@@ -517,7 +513,7 @@ bool CRSelection::CRSelectorZSSll(ZCandidate& Z, ZCandidate& ssll, bool verbose)
   
   // Smart Cut
   bool smartcutFlag = false;
-  if (PhysicsObjSelector::sameFlavourZPair(Z, ssll)) {
+  if (HZZ4lUtil::sameFlavourZPair(Z, ssll)) {
     TLorentzVector ZSSlepP4, ZOSlepP4;
     if (Z.l1Charge == ssll.l1Charge) {
       ZSSlepP4 = Z.l1P4;
@@ -529,16 +525,16 @@ bool CRSelection::CRSelectorZSSll(ZCandidate& Z, ZCandidate& ssll, bool verbose)
     }
     
     TLorentzVector alt1Z1P4 = ZOSlepP4 + ssll.l1P4;
-    PhysicsObjSelector::addFSRtoAltZ(Z, ssll, 1, 1, alt1Z1P4, "(lep1,lep1)");
+    HZZ4lUtil::addFSRtoAltZ(Z, ssll, 1, 1, alt1Z1P4, "(lep1,lep1)");
     
     TLorentzVector alt1Z2P4 = ZSSlepP4 + ssll.l2P4;
-    PhysicsObjSelector::addFSRtoAltZ(Z, ssll, 2, 2, alt1Z2P4, "(lep2,lep2)");
+    HZZ4lUtil::addFSRtoAltZ(Z, ssll, 2, 2, alt1Z2P4, "(lep2,lep2)");
     
     TLorentzVector alt2Z1P4 = ZOSlepP4 + ssll.l2P4;
-    PhysicsObjSelector::addFSRtoAltZ(Z, ssll, 1, 2, alt2Z1P4, "(lep1,lep2)");
+    HZZ4lUtil::addFSRtoAltZ(Z, ssll, 1, 2, alt2Z1P4, "(lep1,lep2)");
     
     TLorentzVector alt2Z2P4 = ZSSlepP4 + ssll.l1P4;
-    PhysicsObjSelector::addFSRtoAltZ(Z, ssll, 2, 1, alt2Z2P4, "(lep2,lep2)");
+    HZZ4lUtil::addFSRtoAltZ(Z, ssll, 2, 1, alt2Z2P4, "(lep2,lep2)");
     
     if (0)
       cout << "Smart Cut combination 1" << endl
@@ -555,8 +551,8 @@ bool CRSelection::CRSelectorZSSll(ZCandidate& Z, ZCandidate& ssll, bool verbose)
 	   << ", " << Z.mass << ", " << alt2Z1P4.M()
 	   << ", " << ssll.mass << ", " << alt2Z2P4.M() << ")"
 	   << endl;
-    if ( (std::fabs(alt1Z1P4.M() - PhysicsObjSelector::MZnominal) < Z.massDiff && alt1Z2P4.M() < 12.) ||
-	 (std::fabs(alt2Z1P4.M() - PhysicsObjSelector::MZnominal) < Z.massDiff && alt2Z2P4.M() < 12.) ) {
+    if ( (std::fabs(alt1Z1P4.M() - HZZ4lUtil::MZnominal) < Z.massDiff && alt1Z2P4.M() < 12.) ||
+	 (std::fabs(alt2Z1P4.M() - HZZ4lUtil::MZnominal) < Z.massDiff && alt2Z2P4.M() < 12.) ) {
       smartcutFlag = true;
     }
   }
@@ -578,9 +574,9 @@ bool CRSelection::CRSelectorZOSll(ZCandidate& Z, ZCandidate& osll, bool verbose)
   fsrVec.push_back(osll.fsrPhoP4);
 
   bool ZlepIso = false;
-  if (Z.flavour == PhysicsObjSelector::ZType::mumu)
+  if (Z.flavour == HZZ4lUtil::ZType::mumu)
     ZlepIso = ZmumuIso(Z, fsrVec);
-  else if (Z.flavour == PhysicsObjSelector::ZType::ee)
+  else if (Z.flavour == HZZ4lUtil::ZType::ee)
     ZlepIso = ZeeIso(Z, fsrVec);
   
   if (!ZlepIso) return false;
@@ -630,15 +626,15 @@ bool CRSelection::CRSelectorZOSll(ZCandidate& Z, ZCandidate& osll, bool verbose)
   // Tight + isolation veto
   bool oslepIdIso1 = false;
   bool oslepIdIso2 = false;
-  if (osll.flavour == PhysicsObjSelector::ZType::mumu) {
+  if (osll.flavour == HZZ4lUtil::ZType::mumu) {
     const auto& muPhotonPairVec = getLooseMuPhotonPairList();
 
     const vhtm::Muon& mu1 = muPhotonPairVec.at(osll.l1Index).first;
-    double l1iso = computeMuonIso(mu1, osll, osll.l1P4, fsrVec, 0.01, 0.4, false);
+    double l1iso = HZZ4lUtil::computeMuonIso(mu1, osll, osll.l1P4, fsrVec, 0.01, 0.4, false);
     osll.l1Isolation = l1iso;
 
     const vhtm::Muon& mu2 = muPhotonPairVec.at(osll.l2Index).first;
-    double l2iso = computeMuonIso(mu2, osll, osll.l2P4, fsrVec, 0.01, 0.4, false);
+    double l2iso = HZZ4lUtil::computeMuonIso(mu2, osll, osll.l2P4, fsrVec, 0.01, 0.4, false);
     osll.l2Isolation = l2iso;
 
     // made by requiring exactly one ("3P1F") or two ("2P2F") of the additional
@@ -646,19 +642,19 @@ bool CRSelection::CRSelectorZOSll(ZCandidate& Z, ZCandidate& osll, bool verbose)
     if (!mu1.isPFMuon || osll.l1Isolation >= 0.4) oslepIdIso1 = true;
     if (!mu2.isPFMuon || osll.l2Isolation >= 0.4) oslepIdIso2 = true;
   }
-  else if (osll.flavour == PhysicsObjSelector::ZType::ee) {
+  else if (osll.flavour == HZZ4lUtil::ZType::ee) {
     const auto& elePhotonPairVec = getLooseElePhotonPairList();
 
     const vhtm::Electron& ele1 = elePhotonPairVec.at(osll.l1Index).first;
-    double l1iso = computeElectronIso(ele1, osll, osll.l1P4, fsrVec, 0.08, 0.4, false);
+    double l1iso = HZZ4lUtil::computeElectronIso(ele1, osll, osll.l1P4, fsrVec, 0.08, 0.4, false);
     osll.l1Isolation = l1iso;
 
     const vhtm::Electron& ele2 = elePhotonPairVec.at(osll.l2Index).first;
-    double l2iso = computeElectronIso(ele2, osll, osll.l2P4, fsrVec, 0.08, 0.4, false);
+    double l2iso = HZZ4lUtil::computeElectronIso(ele2, osll, osll.l2P4, fsrVec, 0.08, 0.4, false);
     osll.l2Isolation = l2iso;
 
-    if (!PhysicsObjSelector::electronBDT(ele1) || osll.l1Isolation >= 0.5) oslepIdIso1 = true;
-    if (!PhysicsObjSelector::electronBDT(ele2) || osll.l2Isolation >= 0.5) oslepIdIso2 = true;
+    if (!HZZ4lUtil::electronBDT(ele1) || osll.l1Isolation >= 0.5) oslepIdIso1 = true;
+    if (!HZZ4lUtil::electronBDT(ele2) || osll.l2Isolation >= 0.5) oslepIdIso2 = true;
   }
   
   // 0=3P1F && 1=2P2F
@@ -691,23 +687,23 @@ bool CRSelection::CRSelectorZOSll(ZCandidate& Z, ZCandidate& osll, bool verbose)
 
   // Smart Cut
   bool smartcutFlag = false;
-  if (PhysicsObjSelector::sameFlavourZPair(Z, osll)) {
+  if (HZZ4lUtil::sameFlavourZPair(Z, osll)) {
     TLorentzVector altZ1P4, altZ2P4;
     if (Z.l1Charge + osll.l1Charge == 0) {
       altZ1P4 = Z.l1P4 + osll.l1P4;
-      PhysicsObjSelector::addFSRtoAltZ(Z, osll, 1, 1, altZ1P4, "(lep1,lep1)"); 
+      HZZ4lUtil::addFSRtoAltZ(Z, osll, 1, 1, altZ1P4, "(lep1,lep1)"); 
       
       altZ2P4 = Z.l2P4 + osll.l2P4;
-      PhysicsObjSelector::addFSRtoAltZ(Z, osll, 2, 2, altZ2P4, "(lep2,lep2)"); 
+      HZZ4lUtil::addFSRtoAltZ(Z, osll, 2, 2, altZ2P4, "(lep2,lep2)"); 
     }
     else {
       altZ1P4 = Z.l1P4 + osll.l2P4;
-      PhysicsObjSelector::addFSRtoAltZ(Z, osll, 1, 2, altZ1P4, "(lep1,lep2)"); 
+      HZZ4lUtil::addFSRtoAltZ(Z, osll, 1, 2, altZ1P4, "(lep1,lep2)"); 
       
       altZ2P4 = Z.l2P4 + osll.l1P4;
-      PhysicsObjSelector::addFSRtoAltZ(Z, osll, 2, 1, altZ2P4, "(lep2,lep1)"); 
+      HZZ4lUtil::addFSRtoAltZ(Z, osll, 2, 1, altZ2P4, "(lep2,lep1)"); 
     }
-    if (std::fabs(altZ2P4.M() - PhysicsObjSelector::MZnominal) < std::fabs(altZ1P4.M() - PhysicsObjSelector::MZnominal)) {
+    if (std::fabs(altZ2P4.M() - HZZ4lUtil::MZnominal) < std::fabs(altZ1P4.M() - HZZ4lUtil::MZnominal)) {
       TLorentzVector lv = altZ1P4;
       altZ1P4 = altZ2P4;
       altZ2P4 = lv;
@@ -719,7 +715,7 @@ bool CRSelection::CRSelectorZOSll(ZCandidate& Z, ZCandidate& osll, bool verbose)
 	   << ", " << Z.mass << ", " << altZ1P4.M() 
 	   << ", " << osll.mass << ", " << altZ2P4.M() << ")"
 	   << endl;
-    if (std::fabs(altZ1P4.M() - PhysicsObjSelector::MZnominal) < Z.massDiff && altZ2P4.M() < 12) {
+    if (std::fabs(altZ1P4.M() - HZZ4lUtil::MZnominal) < Z.massDiff && altZ2P4.M() < 12) {
       if (0) cout << " -- SmartCut: skip Z+ll Candidate" << endl;
       smartcutFlag = true;
     }
@@ -740,27 +736,27 @@ template <typename T>
 void CRSelection::ZSelector(const vector<pair<T, vector<vhtm::PackedPFCandidate> > >& lepPhotonPairVec) {
   for (unsigned int i = 0; i < lepPhotonPairVec.size(); ++i) {
     const auto& ip = lepPhotonPairVec[i];
-    const TLorentzVector& lep1P4 = PhysicsObjSelector::getP4(ip.first);
+    const TLorentzVector& lep1P4 = HZZ4lUtil::getP4(ip.first);
     for (unsigned int j = i+1; j < lepPhotonPairVec.size(); ++j) {
       const auto& jp = lepPhotonPairVec[j];
       
       // opposite charge
       if (ip.first.charge + jp.first.charge != 0) continue; 
-      const TLorentzVector& lep2P4 = PhysicsObjSelector::getP4(jp.first);
+      const TLorentzVector& lep2P4 = HZZ4lUtil::getP4(jp.first);
       
       // Select FSR photon(s) for lepton[i]
       // both the leptons are needed to form Z mass
       vector<vhtm::PackedPFCandidate> lep1PhoList;
       if (!ip.second.empty())
-	PhysicsObjSelector::selectFSRPhoforLepton(lep1P4, lep2P4, ip.second, lep1PhoList);
+	HZZ4lUtil::selectFSRPhoforLepton(lep1P4, lep2P4, ip.second, lep1PhoList);
       
       // Select FSR photon(s) for lepton[j]
       vector<vhtm::PackedPFCandidate> lep2PhoList;
       if (!jp.second.empty())
-	PhysicsObjSelector::selectFSRPhoforLepton(lep2P4, lep1P4, jp.second, lep2PhoList);
+	HZZ4lUtil::selectFSRPhoforLepton(lep2P4, lep1P4, jp.second, lep2PhoList);
       
-      int l1phoidx = (!lep1PhoList.empty()) ? PhysicsObjSelector::selectBestFSRforLepton(lep1P4, lep1PhoList) : -1;
-      int l2phoidx = (!lep2PhoList.empty()) ? PhysicsObjSelector::selectBestFSRforLepton(lep2P4, lep2PhoList) : -1;
+      int l1phoidx = (!lep1PhoList.empty()) ? HZZ4lUtil::selectBestFSRforLepton(lep1P4, lep1PhoList) : -1;
+      int l2phoidx = (!lep2PhoList.empty()) ? HZZ4lUtil::selectBestFSRforLepton(lep2P4, lep2PhoList) : -1;
       
       // Now choose the correct FSR Photon for this ll pair
       TLorentzVector phoP4;    // LorentzVector of the finally selected FSR
@@ -769,11 +765,11 @@ void CRSelection::ZSelector(const vector<pair<T, vector<vhtm::PackedPFCandidate>
         phoP4.SetPtEtaPhiE(0., 0., 0., 0);  
       }
       else if (l1phoidx > -1 && l2phoidx == -1) {
-	phoP4 = PhysicsObjSelector::getP4(lep1PhoList[l1phoidx]);
+	phoP4 = HZZ4lUtil::getP4(lep1PhoList[l1phoidx]);
         withLep = 1;
       }
       else if (l1phoidx == -1 && l2phoidx > -1) {
-	phoP4 = PhysicsObjSelector::getP4(lep2PhoList[l2phoidx]);
+	phoP4 = HZZ4lUtil::getP4(lep2PhoList[l2phoidx]);
         withLep = 2;
       }
       else {
@@ -781,17 +777,17 @@ void CRSelection::ZSelector(const vector<pair<T, vector<vhtm::PackedPFCandidate>
 	const vhtm::PackedPFCandidate& lep2Photon = lep2PhoList[l2phoidx];
         if (lep1Photon.pt > 4. || lep2Photon.pt > 4.) {
           if (lep1Photon.pt > lep2Photon.pt) {
-            phoP4 = PhysicsObjSelector::getP4(lep1Photon);
+            phoP4 = HZZ4lUtil::getP4(lep1Photon);
             withLep = 1;
           }
           else {
-            phoP4 = PhysicsObjSelector::getP4(lep2Photon);
+            phoP4 = HZZ4lUtil::getP4(lep2Photon);
             withLep = 2;
           }
 	}
 	else {
-	  const TLorentzVector& l1PhoP4 = PhysicsObjSelector::getP4(lep1Photon);
-	  const TLorentzVector& l2PhoP4 = PhysicsObjSelector::getP4(lep2Photon);
+	  const TLorentzVector& l1PhoP4 = HZZ4lUtil::getP4(lep1Photon);
+	  const TLorentzVector& l2PhoP4 = HZZ4lUtil::getP4(lep2Photon);
 	  bool dRcond = l1PhoP4.DeltaR(lep1P4) < l2PhoP4.DeltaR(lep2P4);
           if (dRcond) {
             phoP4 = l1PhoP4;
@@ -805,9 +801,9 @@ void CRSelection::ZSelector(const vector<pair<T, vector<vhtm::PackedPFCandidate>
       }
       ZCandidate ztmp;
       if (typeid(jp.first) == typeid(vhtm::Muon))
-        ztmp.flavour = PhysicsObjSelector::ZType::mumu;
+        ztmp.flavour = HZZ4lUtil::ZType::mumu;
       else if (typeid(jp.first) == typeid(vhtm::Electron))
-        ztmp.flavour = PhysicsObjSelector::ZType::ee;
+        ztmp.flavour = HZZ4lUtil::ZType::ee;
       else 
 	ztmp.flavour = -1;
       
@@ -823,7 +819,7 @@ void CRSelection::ZSelector(const vector<pair<T, vector<vhtm::PackedPFCandidate>
       ztmp.fsrPhoP4 = phoP4;
       double Zmass = (lep1P4 + lep2P4 + phoP4).M();
       ztmp.mass = Zmass;
-      ztmp.massDiff = std::fabs(Zmass - PhysicsObjSelector::MZnominal);
+      ztmp.massDiff = std::fabs(Zmass - HZZ4lUtil::MZnominal);
       
       ZCandList_.push_back(ztmp);
     }
@@ -845,7 +841,7 @@ void CRSelection::endJob() {
     "Candidate Phase 1",
     "Candidate Phase 2"
   };
-  showEfficiency("evtCutFlow", evlabels, "Event Selection");  
+  HZZ4lUtil::showEfficiency("evtCutFlow", evlabels, "Event Selection");  
 
   string crlabels [] = {
     "All",
@@ -859,7 +855,7 @@ void CRSelection::endJob() {
     "smartcutFlag",
     "mass4lCut"
   };
-  showEfficiency("crSelCutFlow", crlabels, "CR Event Selection");  
+  HZZ4lUtil::showEfficiency("crSelCutFlow", crlabels, "CR Event Selection");  
 
   histf()->cd();
   histf()->Write();
@@ -882,7 +878,7 @@ bool CRSelection::readJob(const string& jobFile, int& nFiles)
   static const int BUF_SIZE = 256;
 
   // Open the file containing the datacards
-  ifstream fin(jobFile.c_str(), ios::in);    
+  ifstream fin(jobFile.c_str(), std::ios::in);    
   if (!fin) {
     cerr << "Input File: " << jobFile << " could not be opened!" << endl;
     return false;
@@ -904,9 +900,9 @@ bool CRSelection::readJob(const string& jobFile, int& nFiles)
     string key = tokens[0];
     string value = tokens[1];
     if (key == "useEventList")
-      useEventList_ = (atoi(value.c_str()) > 0) ? true : false;
+      useEventList_ = (stoi(value.c_str()) > 0) ? true : false;
     else if (key == "dumpGenInfo")
-      dumpGenInfo_ = (atoi(value.c_str()) > 0) ? true : false;
+      dumpGenInfo_ = (stoi(value.c_str()) > 0) ? true : false;
 
     tokens.clear();
   }
