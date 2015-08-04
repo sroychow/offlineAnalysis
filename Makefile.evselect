@@ -25,17 +25,16 @@ bin: $(EXE)
 all: 
 	make cint 
 	make bin 
-cint: $(DICTC) 
+cling: $(DICTC) 
  
 $(EXE): $(OBJS) src/Dict.o
 	$(CXX) $(LDFLAGS) $^ -o $@ $(LIBS) `root-config --libs`  -lTMVA
  
 $(DICTC): $(HDRS_DICT)
-	echo "Generating dictionary $(DICTC) and $(DICTH) ..."
-	rootcint -f $@ $(CXXFLAGS) $^
-	perl -pi -e 's#interface/##' $(DICTH)
-	mv $(DICTC) src/ 
-	mv $(DICTH) interface/
+	@echo "Generating dictionary $(DICTC) ..."
+	rootcling -f $@ -rmf interface/AnalysisSpaceTreeMaker_xr.rootmap -c $(CXXFLAGS) $^
+	@mv $(DICTC) src/ 
+	@mv Dict_rdict.pcm src/	 
  
 # Create object files
 %.o : %.$(CSUF)
@@ -53,4 +52,4 @@ include Makefile.dep
 # Clean 
 .PHONY   : clean 
 clean : 
-	@-rm $(OBJS) $(EXE) interface/$(DICTH) src/$(DICTC) src/Dict.o
+	@-rm $(OBJS) $(EXE) src/$(DICTC) src/Dict.o
