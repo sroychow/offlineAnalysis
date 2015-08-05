@@ -74,9 +74,8 @@ bool LeptonIsolation::beginJob()
 
   // Open the output ROOT file
   histf()->cd();
+  PhysicsObjSelector::bookHistograms();
   bookHistograms();
-  bookHistograms();
-
   return true;
 }
 // ---------------
@@ -86,6 +85,7 @@ void LeptonIsolation::bookHistograms()
 {
  histf()->cd();
  histf()->mkdir("Event");
+ histf()->cd("Event");
  new TH1D("nGoodvtx","Number of Vertices",50,0,50);
 //Rho Values
  new TH1F("fGridRhoAll","Grid Rho for event",100,0.,100.);
@@ -104,6 +104,7 @@ void LeptonIsolation::bookHistograms(TString folder)
 {
  histf()->cd();
  histf()->mkdir(folder);
+ histf()->cd(folder);
 //Kinematic info
  new TH1F("pt", "Lepton Pt", 150, 0., 150.);
  new TProfile("ptvsnVtx", "Lepton Pt vs nVertex", 80, 0, 80, 0.,150.);
@@ -242,68 +243,72 @@ void LeptonIsolation::readRhofitSlope() {
 //----------------------------------------------
 //Fill Histo for a cone
 //----------------------------------------------
-void LeptonIsolation::fillHistoforCone(std::string c,double mupt,double ch_had,double ch_lep,double nu_had,double nu_photon,double pu,int ngoodVtx,double fGridRhoFastjetAll, TString& leptype) {
+void LeptonIsolation::fillHistoforCone(std::string c,double mupt,double ch_had,double ch_lep,double nu_had,double nu_photon,
+                                       double pu,int ngoodVtx,double fGridRhoFastjetAll, 
+                                       const std::map<std::string, double>& lepCutMap,TString& leptype) {
  histf()->cd();
  histf()->cd(leptype);
+ 
  if(cone_.find(c)!=cone_.end()) {
    AnaUtil::fillHist1D("ChIso_"+cone_[c],ch_had,1);
    AnaUtil::fillHist1D("NIso_"+cone_[c],nu_had+nu_photon,1);
    AnaUtil::fillHist1D("PuIso_"+cone_[c],pu,1);
 
    // do deltaBeta
-   double dbiso = ch_had + std::max(0.0, nu_had+nu_photon-AnaUtil::cutValue(muonCutMap(), "db"+cone_[c])*pu-AnaUtil::cutValue(muonCutMap(), "dbInt"+cone_[c]));
+   double dbiso = ch_had + std::max(0.0, nu_had + nu_photon - AnaUtil::cutValue(lepCutMap, "db"+cone_[c])*pu
+                                                - AnaUtil::cutValue(lepCutMap, "dbInt"+cone_[c]));
 
-   double rhoSlope=AnaUtil::cutValue(muonCutMap(),"brho"+cone_[c]); 
+   double rhoSlope = AnaUtil::cutValue(lepCutMap,"brho" + cone_[c]); 
 
-   double rhoIso=ch_had + std::max(0.0, nu_had+nu_photon - rhoSlope*fGridRhoFastjetAll);
+   double rhoIso = ch_had + std::max(0.0, nu_had + nu_photon - rhoSlope*fGridRhoFastjetAll);
 
    //isolation vs rho
-   AnaUtil::fillProfile("chIso"+cone_[c]+"vsrho",fGridRhoFastjetAll,ch_had);
-   AnaUtil::fillProfile("NIso"+cone_[c]+"vsrho",fGridRhoFastjetAll,nu_had+nu_photon);
-   AnaUtil::fillProfile("puIso"+cone_[c]+"vsrho",fGridRhoFastjetAll,pu);
+   AnaUtil::fillProfile("chIso" + cone_[c] + "vsrho",fGridRhoFastjetAll,ch_had);
+   AnaUtil::fillProfile("NIso" + cone_[c] + "vsrho",fGridRhoFastjetAll,nu_had + nu_photon);
+   AnaUtil::fillProfile("puIso" + cone_[c] + "vsrho",fGridRhoFastjetAll,pu);
 
    //Vs NVertex
-   AnaUtil::fillProfile("chIso"+cone_[c]+"vsnVtx",ngoodVtx,ch_had);
-   AnaUtil::fillProfile("NIso"+cone_[c]+"vsnVtx",ngoodVtx,nu_had+nu_photon);
-   AnaUtil::fillProfile("puIso"+cone_[c]+"vsnVtx",ngoodVtx,pu);    
-   AnaUtil::fillProfile("rhIsoRaw"+cone_[c]+"vsnVtx",ngoodVtx,rhoIso);
-   AnaUtil::fillProfile("rhIsoRel"+cone_[c]+"vsnVtx",ngoodVtx,rhoIso/mupt);
-   AnaUtil::fillProfile("dbIsoRaw"+cone_[c]+"vsnVtx",ngoodVtx,dbiso); 
+   AnaUtil::fillProfile("chIso"+cone_[c] + "vsnVtx",ngoodVtx,ch_had);
+   AnaUtil::fillProfile("NIso"+cone_[c] + "vsnVtx",ngoodVtx,nu_had + nu_photon);
+   AnaUtil::fillProfile("puIso"+cone_[c] +"vsnVtx",ngoodVtx,pu);    
+   AnaUtil::fillProfile("rhIsoRaw"+cone_[c] + "vsnVtx",ngoodVtx,rhoIso);
+   AnaUtil::fillProfile("rhIsoRel"+cone_[c] + "vsnVtx",ngoodVtx,rhoIso/mupt);
+   AnaUtil::fillProfile("dbIsoRaw"+cone_[c] + "vsnVtx",ngoodVtx,dbiso); 
    AnaUtil::fillProfile("dbIsoRel"+cone_[c]+"vsnVtx",ngoodVtx,dbiso/mupt); 
 
-   AnaUtil::fillHist1D("lep_rho_"+cone_[c],0);
+   AnaUtil::fillHist1D("lep_rho_" + cone_[c],0);
    ///Added parts for iso efficiency
    if( rhoIso/mupt < 0.5 ) {
-     AnaUtil::fillHist1D("lep_rho_"+cone_[c],1);
+     AnaUtil::fillHist1D("lep_rho_" + cone_[c],1);
      if( rhoIso/mupt < 0.45 ){
-       AnaUtil::fillHist1D("lep_rho_"+cone_[c],2);
+       AnaUtil::fillHist1D("lep_rho_" + cone_[c],2);
        if( rhoIso/mupt < 0.4 ){
-         AnaUtil::fillHist1D("lep_rho_"+cone_[c],3);
+         AnaUtil::fillHist1D("lep_rho_" + cone_[c],3);
          if( rhoIso/mupt < 0.35 ){
-           AnaUtil::fillHist1D("lep_rho_"+cone_[c],4);
+           AnaUtil::fillHist1D("lep_rho_" + cone_[c],4);
            if( rhoIso/mupt < 0.3 ){
-             AnaUtil::fillHist1D("lep_rho_"+cone_[c],5);
+             AnaUtil::fillHist1D("lep_rho_" + cone_[c],5);
              if( rhoIso/mupt < 0.25 ){ 
-               AnaUtil::fillHist1D("lep_rho_"+cone_[c],6);
+               AnaUtil::fillHist1D("lep_rho_" + cone_[c],6);
              }
            }  
          }
        }
      }
    }
-   AnaUtil::fillHist1D("lep_db_"+cone_[c],0);
+   AnaUtil::fillHist1D("lep_db_" + cone_[c],0);
    if( dbiso/mupt < 0.5 ){
-     AnaUtil::fillHist1D("lep_db_"+cone_[c],1);
+     AnaUtil::fillHist1D("lep_db_" + cone_[c],1);
      if( dbiso/mupt < 0.45 ){
-       AnaUtil::fillHist1D("lep_db_"+cone_[c],2);
+       AnaUtil::fillHist1D("lep_db_" + cone_[c],2);
        if( dbiso/mupt < 0.4 ){
-         AnaUtil::fillHist1D("lep_db_"+cone_[c],3);
+         AnaUtil::fillHist1D("lep_db_" + cone_[c],3);
          if( dbiso/mupt < 0.35 ){
-           AnaUtil::fillHist1D("lep_db_"+cone_[c],4);
+           AnaUtil::fillHist1D("lep_db_" + cone_[c],4);
            if( dbiso/mupt < 0.3 ){
-             AnaUtil::fillHist1D("lep_db_"+cone_[c],5);
+             AnaUtil::fillHist1D("lep_db_" + cone_[c],5);
              if( dbiso/mupt < 0.25 ){ 
-               AnaUtil::fillHist1D("lep_db_"+cone_[c],6);
+               AnaUtil::fillHist1D("lep_db_" + cone_[c],6);
              }
            }  
          }
@@ -317,10 +322,14 @@ void LeptonIsolation::fillHistoforCone(std::string c,double mupt,double ch_had,d
 //--------------------
 //--------------------
 template <typename T>
-void LeptonIsolation::getLeptonIsolationInfo( std::vector<T> lepvec, double rho, int ngoodVtx, TString leptype ) {
+void LeptonIsolation::getLeptonIsolationInfo( std::vector<T> lepvec, double rho, int ngoodVtx, 
+                                             const std::map<std::string, double>& lepCutMap, TString leptype ) {
+  histf()->cd();
+  histf()->cd(leptype);
+
   for (const auto& l : lepvec ) {
-      double lpt = l.pt;
-      AnaUtil::fillHist1D("pt",lpt,1);
+        double lpt = l.pt;
+        AnaUtil::fillHist1D("pt",lpt,1);
         AnaUtil::fillHist1D("eta",l.eta,1);
         AnaUtil::fillProfile("ptvsnVtx",ngoodVtx,l.pt);
         if(l.isolationMap.find("c15") != l.isolationMap.end() ) {
@@ -331,6 +340,7 @@ void LeptonIsolation::getLeptonIsolationInfo( std::vector<T> lepvec, double rho,
                              l.isolationMap.at("c15").at(4),
                              ngoodVtx,
                              rho,
+                             lepCutMap,
                              leptype);
         }
         if(l.isolationMap.find("c20") != l.isolationMap.end() ) {
@@ -340,7 +350,8 @@ void LeptonIsolation::getLeptonIsolationInfo( std::vector<T> lepvec, double rho,
                              l.isolationMap.at("c20").at(3),
                              l.isolationMap.at("c20").at(4),
                              ngoodVtx,
-                             rho,
+                             rho, 
+                             lepCutMap,
                              leptype);
         }
         if(l.isolationMap.find("c25") != l.isolationMap.end() ) {
@@ -351,6 +362,7 @@ void LeptonIsolation::getLeptonIsolationInfo( std::vector<T> lepvec, double rho,
                              l.isolationMap.at("c25").at(4),
                              ngoodVtx,
                              rho,
+			     lepCutMap,
                              leptype);
             
         }
@@ -362,6 +374,7 @@ void LeptonIsolation::getLeptonIsolationInfo( std::vector<T> lepvec, double rho,
                              l.isolationMap.at("c30").at(4),
                              ngoodVtx,
                              rho,
+                             lepCutMap,
                              leptype);
 
         }
@@ -373,6 +386,7 @@ void LeptonIsolation::getLeptonIsolationInfo( std::vector<T> lepvec, double rho,
                              l.isolationMap.at("c35").at(4),
                              ngoodVtx,
                              rho,
+                             lepCutMap,
                              leptype);
 
         }
@@ -384,6 +398,7 @@ void LeptonIsolation::getLeptonIsolationInfo( std::vector<T> lepvec, double rho,
                              l.isolationMap.at("c40").at(4),
                              ngoodVtx,
                              rho,
+                             lepCutMap,
                              leptype);
 
         }
@@ -395,6 +410,7 @@ void LeptonIsolation::getLeptonIsolationInfo( std::vector<T> lepvec, double rho,
                              l.isolationMap.at("c45").at(4),
                              ngoodVtx,
                              rho,
+                             lepCutMap,
                              leptype);
 
         }
@@ -407,6 +423,7 @@ void LeptonIsolation::getLeptonIsolationInfo( std::vector<T> lepvec, double rho,
 // The main event loop
 // -------------------
 void LeptonIsolation::clearLists() {
+ PhysicsObjSelector::clear();
  vtxList.clear();
 }
 void LeptonIsolation::eventLoop() 
@@ -428,6 +445,7 @@ void LeptonIsolation::eventLoop()
   //long int nRecoMuons=0,nGoodRecoMuons=0;
   std::cout<<"Bunch Crossing>>>>"<<bunchCrossing()<<std::endl;
   for (int ev = 0; ev < nEvents(); ++ev) {
+
     clearEvent();
     clearLists();
     int lflag = chain()->LoadTree(ev); 
@@ -489,14 +507,18 @@ void LeptonIsolation::eventLoop()
    AnaUtil::fillHist1D("fGridRhoFastjetCentralChargedPileUp",evt.fGridRhoFastjetCentralChargedPileUp,1);
    AnaUtil::fillHist1D("fGridRhoFastjetCentralNeutral",evt.fGridRhoFastjetCentralNeutral,1);
 
+   // main analysis object selection without iso
+   findObjects(puevWt_);
    const auto& loosemuVec_ = getLooseMuList();
    const auto& tightmuVec_ = getTightMuList();
 
    const auto& looseeleVec_ = getLooseEleList();
    const auto& tighteleVec_ = getTightEleList();
-
-      if( !loosemuVec_.empty() ) getLeptonIsolationInfo<vhtm::Muon>(loosemuVec_, evt.fGridRhoFastjetAll,ngoodVtx,"muon");
-      if( !looseeleVec_.empty() ) getLeptonIsolationInfo<vhtm::Electron>(looseeleVec_, evt.fGridRhoFastjetAll,ngoodVtx,"electron");
+   
+   if( !loosemuVec_.empty() ) getLeptonIsolationInfo<vhtm::Muon>( loosemuVec_, evt.fGridRhoFastjetAll,
+                                                                     ngoodVtx,muonCutMap(),"muon" );
+   if( !looseeleVec_.empty() ) getLeptonIsolationInfo<vhtm::Electron>( looseeleVec_, evt.fGridRhoFastjetAll,ngoodVtx,
+                                                                          electronCutMap(),"electron" );
   }
   // Analysis is over
   endJob();

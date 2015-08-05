@@ -36,9 +36,11 @@ public:
   void bookHistograms(TString folder);
   void readRhofitSlope();
   
-  void fillHistoforCone(std::string c,double mupt,double ch_had,double ch_lep,double nu_had,double nu_photon,double pu,int ngoodVtx,double fGridRhoFastjetAll,TString& leptype);
+  void fillHistoforCone(std::string c,double mupt,double ch_had,double ch_lep,double nu_had,double nu_photon,double pu,
+                        int ngoodVtx,double fGridRhoFastjetAll,const std::map<std::string, double>& lepCutMap,TString& leptype);
   template <typename T>
-    void getLeptonIsolationInfo( std::vector<T> lepvec, double rho,int ngoodVtx,TString leptype );
+    void getLeptonIsolationInfo( std::vector<T> lepvec, double rho,int ngoodVtx,const std::map<std::string, double>& lepCutMap,
+                                 TString leptype );
 
   std::vector<vhtm::Vertex> vtxList;  
   bool _dumpEvent;
