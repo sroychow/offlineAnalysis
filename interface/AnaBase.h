@@ -18,6 +18,10 @@
 
 #include "PhysicsObjects.h"
 
+using std::ofstream;
+using std::ifstream;
+using std::ostream;
+
 typedef unsigned int uint;
 typedef unsigned long ulong;
 
