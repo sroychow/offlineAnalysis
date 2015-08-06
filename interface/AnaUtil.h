@@ -7,10 +7,12 @@
 
 #include "TMath.h"
 #include "TLorentzVector.h"
+#include "TH3.h"
+using std::ostream;
 
 class TH1;
 class TH2;
-class TH3;
+//class TH3;
 class TProfile;
 
 namespace AnaUtil {

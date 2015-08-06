@@ -13,6 +13,8 @@
 #include "AnaBase.h"
 #include "ZCandidate.h"
 
+using std::ofstream;
+
 namespace HZZ4lUtil {
   const double MZnominal = 91.1876;
 
