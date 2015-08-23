@@ -10,7 +10,7 @@ DICTC  = Dict.$(CSUF)
 DICTH  = $(patsubst %.$(CSUF),%.h,$(DICTC))
 
 #SRCS   = $(wildcard src/*.$(CSUF))
-SRCS   = src/PhysicsObjects.cc src/AnaBase.cc src/AnaUtil.cc src/HZZ4lUtil.cc src/PhysicsObjSelector.cc src/EventSelection.cc src/evntSelection.cc 
+SRCS   = src/PhysicsObjects.cc src/AnaBase.cc src/AnaUtil.cc src/HZZ4lUtil.cc src/GenAnalysis.cc src/PhysicsObjSelector.cc src/EventSelection.cc src/evntSelection.cc 
 OBJS   = $(patsubst %.$(CSUF), %.o, $(SRCS))
 
 LDFLAGS  = -g
