@@ -30,6 +30,7 @@
 #include "AnaUtil.h"
 #include "HZZ4lUtil.h"
 #include "EventSelection.h"
+#include "GenAnalysis.h"
 
 //#include "MEMCalculators.h"
 //using namespace MEMNames;
@@ -77,7 +78,7 @@ bool EventSelection::beginJob()
 
   histf()->cd();
   histf()->mkdir("EventSelection");
-  histf()->mkdir("GeneratorLevel");
+  
   bookHistograms();
 
   return true;
@@ -114,12 +115,6 @@ void EventSelection::bookHistograms()
   new TH1D("dRlepZal2Zbl2", "dRlepZal2Zbl2", 100, 0, 5);
 
   new TH1D("isTriggered", "Event triggered", 2, -0.5, 1.5);
-
-  //Exotic plots
-  // GEN Level histograms
-  //histf()->cd();
-  //histf()->cd("GeneratorLevel");
-
 
   histf()->cd();
   histf()->ls();
@@ -212,11 +207,17 @@ void EventSelection::eventLoop()
     histf()->cd("EventSelection");
     AnaUtil::fillHist1D("evtCutFlow", 0, puevWt_);
     
+    bool bookGenHist = (ev > 0) ? false:true;
+    GenAnalysis gAna(*genParticleColl(),histf(),bookGenHist);
+    //if(  gAna.genOk() )
+    //  cout << "GenPass = " << gAna.genOk() << std::endl;
     // good vertex finding
     op.verbose = (logOption() >> 1 & 0x1);
     findVtxInfo(vtxList_, op, fLog());
     double ngoodVtx = vtxList_.size();
     
+    histf()->cd();
+    histf()->cd("EventSelection");
     
     AnaUtil::fillHist1D("evtCutFlow", 1, puevWt_);
     AnaUtil::fillHist1D("isTriggered", (isTriggered(true, false)?1:0), puevWt_); 
@@ -719,169 +720,6 @@ bool EventSelection::hasJetPair(const std::vector<vhtm::Jet>& jetList) {
   return false;
 }
 
-//---------------------
-// Gen Level Functions
-//---------------------
-int EventSelection::getGenDauPgd(const GenParticle& gp) {
-  vector<int> d = gp.daughtIndices;
-  vector<int> dpdgid;
-  for (auto di: d) {
-    if (di >= ngenparticle()) continue;
-    const GenParticle& dgp = genParticleColl()->at(di);
-    int pid = std::abs(dgp.pdgId);
-    if (pid == 23) continue;
-    dpdgid.push_back(pid);
-  }
-  if (dpdgid.empty()) return -1;
-  else if (dpdgid[0] == 15) return dpdgid[1];
-  else return dpdgid[0];
-}
-double EventSelection::getHmassfromZdau(const GenParticle& Z1, const GenParticle& Z2) {
-  TLorentzVector lZ1, lZ2;
-  lZ1.SetPtEtaPhiE(0., 0., 0., 0.);
-  lZ2.SetPtEtaPhiE(0., 0., 0., 0.);
-
-  const vector<int>& d1 = Z1.daughtIndices;
-  for (auto di: d1) {
-    if (di >= ngenparticle()) continue;
-    const GenParticle& dgp = genParticleColl()->at(di);
-    if (std::abs(dgp.pdgId) == 23) continue;
-    lZ1 += HZZ4lUtil::getP4(dgp);
-  }
-
-  const vector<int>& d2 = Z2.daughtIndices;
-  for (auto di: d2) {
-    if (di >= ngenparticle()) continue;
-    const GenParticle& dgp = genParticleColl()->at(di);
-    if (std::abs(dgp.pdgId) == 23) continue;
-    lZ2 += HZZ4lUtil::getP4(dgp);
-  }
-  return (lZ1+lZ2).M();
-}
-bool EventSelection::genOk() {
-  histf()->cd();
-  histf()->cd("GeneratorLevel");
-  bool genPass = false;
-  for (const auto& gp: *genParticleColl()) {
-    int pdgid = std::abs(gp.pdgId);
-    int status = gp.status;
-
-    if (pdgid == 25) {
-      TLorentzVector l = HZZ4lUtil::getP4(gp);
-      AnaUtil::fillHist1D("genHmass", l.M(), puevWt_);
-    }
-    // if (pdgid == 23 && status==2 ) {
-    else if (pdgid == 23 && status == 3 ) { // Z
-      int mmid = -1;
-      int index = getMotherId(gp, mmid);
-      AnaUtil::fillHist1D("genZmother", mmid, puevWt_);
-      if (index < 0 || std::abs(mmid) != 25) continue; // H -> ZZ
-      genZList_.push_back(gp);
-      TLorentzVector l1 = HZZ4lUtil::getP4(gp);
-      AnaUtil::fillHist1D("genZmass", l1.M(), puevWt_);
-    }
-  }
-  if (0) cout << "#Gen Z = " << genZList_.size() << endl;
-  if (genZList_.size() < 2) return genPass;
-  //  std::sort(genZList_.begin(), genZList_.end(), MassComparator<vhtm::GenParticle>());
-  AnaUtil::fillHist1D("genZ1mass", HZZ4lUtil::getP4(genZList_[0]).M(), puevWt_); 
-  AnaUtil::fillHist1D("genZ2mass", HZZ4lUtil::getP4(genZList_[1]).M(), puevWt_);
-  AnaUtil::fillHist1D("genHmassfromZ", (HZZ4lUtil::getP4(genZList_[0])+HZZ4lUtil::getP4(genZList_[1])).M(), puevWt_);
-
-  int nZ = genZList_.size();
-  int* nMu  = new int[nZ];
-  int* nEle = new int[nZ];
-  for (int i = 0; i < nZ; ++i) {nMu[i] = 0; nEle[i] = 0;}
-  int iz = 0;
-  for (auto const& gp: genZList_) {
-    // check e mu decay of Z
-    vector<int> d = gp.daughtIndices;
-    for (auto di: d) {
-      if (di >= ngenparticle()) continue;
-      const GenParticle& dgp = genParticleColl()->at(di);
-      int pid = std::abs(dgp.pdgId);
-      if (pid == 11) {
-        ++nEle[iz];
-        AnaUtil::fillHist1D("nZdauflav", 3, puevWt_);
-      }
-      else if (pid == 13) {
-        ++nMu[iz];
-        AnaUtil::fillHist1D("nZdauflav", 1, puevWt_); 
-      }
-      else if (pid == 15) {
-        AnaUtil::fillHist1D("nZdauflav", 5, puevWt_);
-        GenParticle xgp = (dgp.status == 3) ? genParticleColl()->at(dgp.daughtIndices[0]) : dgp;
-        const GenParticle& ygp = genParticleColl()->at(xgp.daughtIndices[0]);
-        if (std::abs(ygp.pdgId) == 15 && ygp.status == 2) xgp = ygp;
-        const GenParticle& zgp = genParticleColl()->at(xgp.daughtIndices[0]);
-        if (std::abs(zgp.pdgId) == 15 && zgp.status == 2) xgp = zgp;
-
-        vector<int> dtauIndices = xgp.daughtIndices;
-        for (auto in: dtauIndices) {
-          if (in >= ngenparticle()) continue;
-          const GenParticle& dtaugp = genParticleColl()->at(in);
-          int dtaupid = std::abs(dtaugp.pdgId);
-          if (dtaupid == 13) {
-            ++nMu[iz];
-            AnaUtil::fillHist1D("nZdauflav", 1, puevWt_); 
-          }
-          else if (dtaupid == 11 || dtaupid == 213) {
-            ++nEle[iz];
-            AnaUtil::fillHist1D("nZdauflav", 3, puevWt_);
-          }
-        }
-      }
-      else AnaUtil::fillHist1D("nZdauflav", 7, puevWt_);
-    }                
-    iz++;
-  }
-  if (0) {
-    for (int i = 0; i < nZ; ++i) {
-      cout << "Z[" << i << "] daughters: " << nMu[i] << ", " << nEle[i] << endl;
-    }
-  }  
-  // Event Flavour
-  if (nMu[0] == 2 && nMu[1] == 2) {
-    AnaUtil::fillHist1D("nEvntflav", 1, puevWt_);
-    AnaUtil::fillHist1D("genHmassfromZdau", getHmassfromZdau(genZList_[0], genZList_[1]), puevWt_);
-    genPass = true;
-    evtype_ = EventType::mmmm;
-  } 
-  else if (nEle[0] == 2 && nEle[1] == 2) {
-    AnaUtil::fillHist1D("nEvntflav", 3, puevWt_);
-    AnaUtil::fillHist1D("genHmassfromZdau", getHmassfromZdau(genZList_[0], genZList_[1]), puevWt_);
-    genPass = true;
-    evtype_ = EventType::eeee;
-  }
-  else if ((nMu[0] == 2 && nEle[1] == 2) || (nEle[0] == 2 && nMu[1] == 2)) {
-    AnaUtil::fillHist1D("nEvntflav", 5, puevWt_);
-    AnaUtil::fillHist1D("genHmassfromZdau", getHmassfromZdau(genZList_[0], genZList_[1]), puevWt_);
-    genPass = true;
-    evtype_ = EventType::eemm;
-  } 
-  else {
-    AnaUtil::fillHist1D("nEvntflav", 7, puevWt_);
-  }
-  delete [] nMu;
-  delete [] nEle;
-
-  if (genPass) {   
-    if (0) cout << "Event Type = " << evtype_ << endl;
-
-    // Z1 daughters
-    if (getGenDauPgd(genZList_[0]) == 13 ) AnaUtil::fillHist1D("nZ1dauflav", 1, puevWt_);
-    else if (getGenDauPgd(genZList_[0]) == 11) AnaUtil::fillHist1D("nZ1dauflav", 3, puevWt_);
-    else if (getGenDauPgd(genZList_[0]) == 15) AnaUtil::fillHist1D("nZ1dauflav", 5, puevWt_);
-    else AnaUtil::fillHist1D("nZ1dauflav", 7, puevWt_);
-
-    // Z2 daughter
-    if (getGenDauPgd(genZList_[1]) == 13 ) AnaUtil::fillHist1D("nZ2dauflav", 1, puevWt_);
-    else if (getGenDauPgd(genZList_[1]) == 11) AnaUtil::fillHist1D("nZ2dauflav", 3, puevWt_);
-    else if (getGenDauPgd(genZList_[1]) == 15) AnaUtil::fillHist1D("nZ2dauflav", 5, puevWt_);
-    else AnaUtil::fillHist1D("nZ2dauflav", 7, puevWt_);
-  }
-  return genPass;
-  }
   void EventSelection::endJob() {
     syncDumpf_.close();
     closeFiles();

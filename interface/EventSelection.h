@@ -48,10 +48,7 @@ public:
   int findExtraLeptons(const ZCandidate& Z1, const ZCandidate& Z2);
   int findEventCategory(int nleptons, const std::vector<vhtm::Jet>& jetList, int nbjets,
 			const ZCandidate& Z1Cand, const ZCandidate& Z2Cand, bool verbose=true);
-  // Functions for gen Level
-  int getGenDauPgd(const vhtm::GenParticle& gp);
-  double getHmassfromZdau(const vhtm::GenParticle& Z1, const vhtm::GenParticle& Z2);
-  bool genOk();
+
   static bool hasJetPair(const std::vector<vhtm::Jet>& jetList);
   //static void ZZkbg(const ZCandidate& Z1, const ZCandidate& Z2, const TLorentzVector& jet1P4, const TLorentzVector& jet2P4,
   //		    int nJets, std::map<std::string, double>& kd);
