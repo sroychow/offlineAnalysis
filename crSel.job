@@ -13,6 +13,7 @@ muonCutList eta=2.4 pt=5. dxyPV=0.5 dzPV=1. SIP3D=4.
 electronCutList pt=7. eta=2.5 dxyPV=0.5 dzPV=1. missingHits=1 SIP3D=4.
 tauCutList eta=2.3 pt=10 dz=0.2 muVeto=0.5 eleVeto=0.5
 bjetCutList eta=2.4 pt=20 useTCHE=0 TCHECut=3.3 SVHECut=1.74
+jetCutList eta=4.7 pt=30 dRlep=0.4 btagFactor=0.814
 evselCutList Isbkg=0 selectEvType=0 evType=1 CRtype=1 osCRtype=1
 useTrigger 1
 trigPathList HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL_DZ_v
