@@ -560,7 +560,9 @@ bool CRSelection::CRSelectorZSSll(ZCandidate& Z, ZCandidate& ssll, bool verbose)
   AnaUtil::fillHist1D("crSelCutFlow", 8, puevWt_);
   
   double mass4l = (Z.l1P4 + Z.l2P4 + Z.fsrPhoP4 + ssll.l1P4 + ssll.l2P4 + ssll.fsrPhoP4).M();
-  if (mass4l <= 70.) return false;
+  //if (mass4l <= 70.) return false;
+  //for data sync
+  if (mass4l < 70. || (mass4l > 110 && mass4l <= 150.)) return false;
   AnaUtil::fillHist1D("crSelCutFlow", 9, puevWt_);
 
   return true;
