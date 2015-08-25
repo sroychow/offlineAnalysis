@@ -546,7 +546,10 @@ void EventSelection::ZZselector() {
     // --- from twiki --
     // m(4l) > 70 GeV
     double mass4l = (Z1Cand.l1P4 + Z1Cand.l2P4 + Z1Cand.fsrPhoP4 + Z2Cand.l1P4 + Z2Cand.l2P4 + Z2Cand.fsrPhoP4).M();
-    if (mass4l <= 70.) continue;
+    //if (mass4l <= 70.) continue;
+    //for sync with data
+    //Signal region (m4l in the ranges [70,110] and >150 GeV)
+    if ( mass4l < 70. || (mass4l > 110. && mass4l <= 150.) ) continue;
     ++zzcounter[6];
 
     // Z1,Z2 satisfy the conditions, hence fill them in ZZPairVec_
